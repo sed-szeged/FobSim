@@ -11,7 +11,7 @@ class User:
         self.addressParent = parent
         self.addressSelf = address
         self.tasks = []
-        self.identity_added_attributes = dict()
+        self.identity_added_attributes = {}
         self.wallet = data["EUs_initial_wallet_value"]
 
     def create_tasks(self, num_of_task_per_user, blockchain_function, list_of_end_users):

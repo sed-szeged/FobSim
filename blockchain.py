@@ -1,57 +1,65 @@
 import time
 import hashlib
 import json
-import memPool
-from multiprocessing import Manager
+import os
+import random
 
 with open("Sim_parameters.json") as json_file:
     data = json.load(json_file)
 diff = data["puzzle_difficulty"]
 target = 2 ** (256 - diff)
 list_of_stakes = [['Network', 0]]
+mining_award = data["mining_award"]
+# with open(str("temporary/awards_log.json"), "w") as file:
+#     json.dump({}, file, indent=4)
 
 
-class Block:
+def generate_new_block(transactions, generator_id):
+    new_block = {'transactions': transactions,
+                 'next': None,
+                 'blockNo': 0,
+                 'nonce': 0,
+                 'generator_id': generator_id,
+                 'previous_hash': 0,
+                 'timestamp': time.time(),
+                 'hash': 0}
+    new_block['hash'] = hashing_function(new_block['nonce'], new_block['transactions'], new_block['generator_id'])
+    return new_block
 
-    def __init__(self, tx, generator_id):
-        self.transactions = tx
-        self.next = None
-        self.blockNo = 0
-        self.nonce = 0
-        self.generator_id = generator_id
-        self.previous_hash = 0
-        self.timestamp = time.time()
-        self.hash = hashing_function(self.nonce, self.transactions, self.generator_id)
 
-
-class AwardLog:
-    def __init__(self):
-        self.mining_award = 5
-        self.awards_log = []
-
-    def report_a_successful_block_addition(self, winning_miner, hash_of_added_block, list_of_miners):
+def report_a_successful_block_addition(winning_miner, hash_of_added_block):
         record_exist = False
-        for award_log in self.awards_log:
-            if award_log[0] == winning_miner and award_log[1] == hash_of_added_block:
-                award_log[2] += 1
+        with open("temporary/confirmation_log.json", 'r') as f:
+            temporary_confirmation_log = json.load(f)
+        for key in temporary_confirmation_log:
+            if key == hash_of_added_block and winning_miner == temporary_confirmation_log[key]['winning_miner']:
+                temporary_confirmation_log[key]['votes'] += 1
                 record_exist = True
                 break
         if not record_exist:
-            self.awards_log.append([winning_miner, hash_of_added_block, 1])
+            temporary_confirmation_log[str(hash_of_added_block)] = {'winning_miner': winning_miner, 'votes': 1}
+        os.remove(str("temporary/confirmation_log.json"))
+        with open(str("temporary/confirmation_log.json"), "w") as f:
+            json.dump(temporary_confirmation_log, f, indent=4)
+        print("##############################\n")
 
-    def declare_winning_miners(self, number_of_miners):
-        while len(self.awards_log) != 0:
-            if self.awards_log[0][2] >= int(number_of_miners / 2):
-                memPool.winning_miners.put(self.awards_log[0][0])
-                self.awards_log.remove(self.awards_log[0])
 
-    def award_winning_miners(self, list_of_miners):
-        while memPool.winning_miners.qsize() != 0:
-            winner = memPool.winning_miners.get()
-            for miner in list_of_miners:
-                if miner.address == winner:
-                    miner.wallet += 5
-                    break
+def award_winning_miners(list_of_miner_nodes):
+    with open(str("temporary/confirmation_log.json"), 'r') as f:
+        final_confirmation_log = json.load(f)
+    with open("temporary/miner_wallets_log.json", 'r') as miner_final_wallets_log:
+        miner_final_wallets_log_py = json.load(miner_final_wallets_log)
+    for key in final_confirmation_log:
+        if final_confirmation_log[key]['votes'] > int(len(list_of_miner_nodes)/2):
+            for miner in list_of_miner_nodes:
+                if miner.address == final_confirmation_log[key]['winning_miner']:
+                    miner_final_wallets_log_py[str(miner.address)] += mining_award
+    print("Miners wallets are now as following:")
+    print(miner_final_wallets_log_py)
+    with open(str("temporary/miner_wallets_log.json"), "w") as f:
+        json.dump(miner_final_wallets_log_py, f, indent=4)
+    print("##############################\n")
+
 
 def txs_back_to_memp(returned_transactions, mem_pool):
     for i in range(len(returned_transactions)):
@@ -65,26 +73,21 @@ def hashing_function(nonce, transactions, generator_id):
     return h.hexdigest()
 
 
-def stake(miner_address, amount, list_of_miners):
-    if miner_address in [elem for sublist in list_of_stakes for elem in sublist]:
-        for stake_record in list_of_stakes:
-            if stake_record[0] == miner_address:
-                stake_record[1] += amount
-                break
-    else:
-        list_of_stakes.append([miner_address, amount])
-    for miner in list_of_miners:
-        if miner.address == miner_address:
-            miner.wallet -= amount
-            print(str(miner.address) + " have staked " + str(amount) + " successfully.")
-            print(str(miner.address) + " wallet contains now " + str(miner.wallet))
-            break
+def stake(list_of_miners, num_of_consensus):
+    if num_of_consensus == 2:
+        for miner in list_of_miners:
+            with open('temporary/miner_wallets_log.json', 'r') as x:
+                temp_miner_wallets_log_py = json.load(x)
+                with open('temporary/miners_stake_amounts.json', 'r') as y:
+                    temp_miners_stake_amounts_py = json.load(y)
 
+                    temp_miners_stake_amounts_py[miner.address] = random.randint(0, temp_miner_wallets_log_py[
+                        miner.address])
+                    temp_miner_wallets_log_py[miner.address] -= temp_miners_stake_amounts_py[miner.address]
 
-def read_the_stake(miner_address):
-    if miner_address in [elem for sublist in list_of_stakes for elem in sublist]:
-        for stake_record in list_of_stakes:
-            if stake_record[0] == miner_address:
-                return stake_record[1]
-    else:
-        return 0
+            os.remove('temporary/miner_wallets_log.json')
+            os.remove('temporary/miners_stake_amounts.json')
+            with open('temporary/miner_wallets_log.json', "w") as f:
+                json.dump(temp_miner_wallets_log_py, f, indent=4)
+            with open('temporary/miners_stake_amounts.json', "w") as f:
+                json.dump(temp_miners_stake_amounts_py, f, indent=4)
