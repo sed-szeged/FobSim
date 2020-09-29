@@ -1,5 +1,5 @@
 {
-  "NumOfFogNodes": 2,
+  "NumOfFogNodes": 4,
   "NumOfTaskPerUser": 2,
   "NumOfMiners": 2,
   "numOfTXperBlock": 1,

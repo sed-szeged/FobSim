@@ -1,4 +1,4 @@
-import memPool
+import mempool
 
 
 class Fog:
@@ -12,6 +12,5 @@ class Fog:
         self.list_of_connected_users.add(sender)
 
     def send_tasks_to_BC(self):
-        print(self.tasks)
         for i in range(len(self.tasks)):
-            memPool.MemPool.put(self.tasks[i])
+            mempool.MemPool.put(self.tasks[i])

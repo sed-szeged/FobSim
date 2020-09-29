@@ -2,13 +2,14 @@ from multiprocessing import Process
 import Fog
 import end_user
 import miner
-import memPool
 import blockchain
 import consensus
 import random
 import json
 import os
 import shutil
+import mempool
+import output
 
 
 with open("Sim_parameters.json") as json_file:
@@ -42,35 +43,22 @@ def user_input():
         json.dump({}, awards_log, indent=4)
     with open('temporary/miner_wallets_log.json', 'w') as miner_wallets_log:
         json.dump({}, miner_wallets_log, indent=4)
-
-    print("Please choose the function of the Blockchain network:\n"
-          "(1) Data Management\n"
-          "(2) Computational services\n"
-          "(3) Payment\n"
-          "(4) Identity Management\n")
+    output.choose_functionality()
     global blockchainFunction
     blockchainFunction = int(input())
-    print("Please choose the placement of the Blockchain network:\n"
-          "(1) Fog Layer\n"
-          "(2) End-User layer\n")
+    output.choose_placement()
     global blockchainPlacement
     blockchainPlacement = int(input())
 
 
 def initiate_network():
-
     for count in range(NumOfFogNodes):
         fogNodes.append(Fog.Fog(count + 1))
         for p in range(num_of_users_per_fog_node):
             list_of_end_users.append(end_user.User(p + 1, count+1))
     print("*****************End_users are up\nFog nodes are up\nEnd-Users are connected to their Fog nodes...\n")
     if blockchainFunction == 4:
-        print("###########################################"
-              "\nWARNING: Each end-user's address and the address of the fog component it is connected with,\n "
-              "will be immutably saved on the chain. This is not a GDPR-compliant practice.\n"
-              "if you need to have your application GDPR-compliant, you need to change the configuration,\n"
-              " so that other types of identities be saved on the immutable chain, and re-run the simulation."
-              "\n###########################################\n")
+        output.GDPR_warning()
         while True:
             print("If you don't want other attributes to be added to end_users, input: done\n")
             new_attribute = input("If you want other attributes to be added to end_users, input them next:\n")
@@ -88,27 +76,16 @@ def initiate_network():
         print("End_user " + str(user.addressParent) + "." + str(user.addressSelf) + " had sent its tasks to the fog layer")
 
 
-def deploy_miners_in_fog_nodes(the_miners_list):
-    for i in range(NumOfFogNodes):
-        the_miners_list.append(miner.Miner(i + 1))
-    print("*****************\nMiner nodes are up and waiting for the genesis block...!\n")
-    return the_miners_list
-
-
-def deploy_miners_in_end_user_layer(the_miners_list):
-    for i in range(NumOfMiners):
-        the_miners_list.append(miner.Miner(i + 1))
-    print("*****************\nMiner nodes are up and waiting for the genesis block...!\n")
-    return the_miners_list
-
-
 def initiate_miners():
     the_miners_list = []
     miner_wallets_log_py = {}
     if blockchainPlacement == 1:
-        the_miners_list = deploy_miners_in_fog_nodes(the_miners_list)
+        for i in range(NumOfFogNodes):
+            the_miners_list.append(miner.Miner(i + 1))
     if blockchainPlacement == 2:
-        the_miners_list = deploy_miners_in_end_user_layer(the_miners_list)
+        for i in range(NumOfMiners):
+            the_miners_list.append(miner.Miner(i + 1))
+    output.miners_are_up()
     for entity in the_miners_list:
         with open(str("temporary/" + entity.address + "_local_chain.json"), "w") as f:
             json.dump({}, f)
@@ -118,28 +95,15 @@ def initiate_miners():
     return the_miners_list
 
 
-def give_miners_authorization(the_miners_list, type_of_consensus):
-    if type_of_consensus == 3:
-        # authomated approach:
-
+def give_miners_authorization(the_miners_list, the_type_of_consensus):
+    if the_type_of_consensus == 3:
+        # automated approach:
         # for i in range(25):
         #     the_miners_list[i].isAuthorized = True
         #     list_of_authorized_miners.append(the_miners_list[i])
 
         # user input approach:
-
-        print("please input the address of authorized:")
-        if blockchainPlacement == 1:
-            print("Fog Nodes")
-        else:
-            print("End-users")
-        print("to generate new blocks in the exact following format:")
-        print(">>>> 1 OR 3 OR 50 ... (up to: ")
-        if blockchainPlacement == 1:
-            print(str(NumOfFogNodes) + " fog nodes available")
-        else:
-            print(str(NumOfMiners) + " miners available in the EU layer")
-        print("Once done, kindly input: done")
+        output.authorization_trigger(blockchainPlacement, NumOfFogNodes, NumOfMiners)
         while True:
             authorized_miner = input()
             if authorized_miner == "done":
@@ -155,47 +119,31 @@ def initiate_genesis_block():
     genesis_transactions = ["genesis_block"]
     for i in range(len(miner_list)):
         genesis_transactions.append(miner_list[i].address)
-    genesis_block = blockchain.generate_new_block(genesis_transactions, 'The Network')
+    genesis_block = blockchain.generate_new_block(genesis_transactions, 'The Network', 0)
+    output.block_info(genesis_block, type_of_consensus)
     for elem in miner_list:
-        elem.receive_new_block(memPool.MemPool, genesis_block, type_of_consensus, miner_list, blockchainFunction,
-                               list_of_end_users)
-    print("\nGenesis Block is generated. The Blockchain system is up...!\nMiners will now collect transactions from "
-          "memPool and start building blocks...\n\n")
-    print("The following block has been proposed by " + genesis_block['generator_id'] +
-          " and is generated into the Blockchain network")
-    print("**************************")
-    print("transactions:")
-    print(genesis_block['transactions'])
-    print("hash:")
-    print(genesis_block['hash'])
-    print("timestamp:")
-    print(genesis_block['timestamp'])
-    print("nonce:")
-    print(genesis_block['nonce'])
-    print("previous_hash:")
-    print(genesis_block['previous_hash'])
-    print("**************************")
+        elem.receive_new_block(mempool.MemPool, genesis_block, type_of_consensus, miner_list, blockchainFunction)
+    output.genesis_block_generation()
 
 
 def send_tasks_to_BC():
-    print("mempool contents:")
     for node in fogNodes:
         node.send_tasks_to_BC()
 
 
 def miners_trigger(the_miners_list, the_type_of_consensus):
-    while memPool.MemPool.qsize() != 0:
+    output.mempool_info(mempool.MemPool)
+    while mempool.MemPool.qsize() != 0:
         if the_type_of_consensus == 1:
             for obj in the_miners_list:
-            ## non-parallel approach
-                obj.build_block(numOfTXperBlock, memPool.MemPool, the_miners_list, the_type_of_consensus, list_of_end_users, blockchainFunction)
-            ## parallel approach
-            #     process = Process(target=obj.build_block,
-            #                       args=(numOfTXperBlock, memPool.MemPool, the_miners_list, the_type_of_consensus, list_of_end_users, blockchainFunction, ))
-            #     mining_processes.append(process)
-            #     process.start()
-            # for mining_process in mining_processes:
-            #     mining_process.join()
+                # non-parallel approach
+                obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction)
+                # parallel approach
+                process = Process(target=obj.build_block, args=(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction, ))
+                mining_processes.append(process)
+                process.start()
+            for mining_process in mining_processes:
+                mining_process.join()
         if the_type_of_consensus == 2:
             randomly_chosen_miners = []
             x = int(round((len(the_miners_list)/2), 0))
@@ -211,10 +159,10 @@ def miners_trigger(the_miners_list, the_type_of_consensus):
                         final_chosen_miner = chosen_miner
                 for entity in the_miners_list:
                     entity.next_pos_block_from = final_chosen_miner.address
-                final_chosen_miner.build_block(numOfTXperBlock, memPool.MemPool, the_miners_list, the_type_of_consensus, list_of_end_users, blockchainFunction)
+                final_chosen_miner.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction)
         if the_type_of_consensus == 3:
             for obj in miner_list:
-                obj.build_block(numOfTXperBlock, memPool.MemPool, the_miners_list, the_type_of_consensus, list_of_end_users, blockchainFunction)
+                obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction)
 
 
 def inform_miners_of_users_wallets():
@@ -230,18 +178,6 @@ def inform_miners_of_users_wallets():
                 json.dump(user_wallets, f, indent=4)
 
 
-def finish():
-    print("simulation is done.")
-    print("To check/analyze the experiment, please refer to the temporary folder.")
-    print("There, you can find:")
-    print("- miners' local chains")
-    print("- miners' local records of users' wallets")
-    print("- log of blocks confirmed by the majority of miners")
-    print("- log of final amounts in miners' wallets (initial values - staked values + awards)")
-    print("- log of values which were staked by miners")
-    print("thank YOU..!")
-
-
 if __name__ == '__main__':
     user_input()
     initiate_network()
@@ -254,4 +190,4 @@ if __name__ == '__main__':
     send_tasks_to_BC()
     miners_trigger(miner_list, type_of_consensus)
     blockchain.award_winning_miners(miner_list)
-    finish()
+    output.finish()

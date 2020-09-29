@@ -1,14 +1,12 @@
 import blockchain
 import json
+import output
 
 num_of_consensus = 0
 
 
 def choose_consensus():
-    print("Please choose the Consensus algorithm to be used in the simulation:\n"
-          "(1) Proof of Work: PoW\n"
-          "(2) Proof of Stake: PoS\n"
-          "(3) Proof of Authority: PoA\n")
+    output.choose_consensus()
     global num_of_consensus
     num_of_consensus = int(input())
     if num_of_consensus == 2:
@@ -19,7 +17,7 @@ def choose_consensus():
 
 def pow_mining(block):
     while True:
-        block['hash'] = blockchain.hashing_function(block['nonce'], block['transactions'], block['generator_id'])
+        block['hash'] = blockchain.hashing_function(block['nonce'], block['transactions'], block['generator_id'], block['previous_hash'])
         if int(block['hash'], 16) > blockchain.target:
             block['nonce'] += 1
         else:
@@ -27,18 +25,15 @@ def pow_mining(block):
     return block
 
 
-def pow_block_is_valid(block, expected_previous_hash, list_of_end_users, blockchainFunction):
-    if block['hash'] == blockchain.hashing_function(block['nonce'], block['transactions'], block['generator_id']):
-        if int(block['hash'], 16) <= blockchain.target and block['previous_hash'] == expected_previous_hash:
+def pow_block_is_valid(block, expected_previous_hash):
+    if block['hash'] == blockchain.hashing_function(block['nonce'], block['transactions'], block['generator_id'], expected_previous_hash):
+        if int(block['hash'], 16) <= blockchain.target:
             return True
 
 
-def poa_block_is_valid(block, expected_previous_hash, miner_list, blockchain_function, list_of_end_users):
+def poa_block_is_valid(block, expected_previous_hash, miner_list):
     for obj in miner_list:
         if obj.address == block['generator_id']:
             if obj.isAuthorized and block['previous_hash'] == expected_previous_hash:
-                if block['hash'] == blockchain.hashing_function(block['nonce'], block['transactions'], block['generator_id']):
+                if block['hash'] == blockchain.hashing_function(block['nonce'], block['transactions'], block['generator_id'], block['previous_hash']):
                     return True
-
-
-
