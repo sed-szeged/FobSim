@@ -62,8 +62,8 @@ def award_winning_miners(list_of_miner_nodes):
 
 
 def txs_back_to_memp(returned_transactions, mem_pool):
-    for i in range(len(returned_transactions)):
-        mem_pool.put(returned_transactions[i])
+    for tx in returned_transactions:
+        mem_pool.put(tx)
 
 
 def stake(list_of_miners, num_of_consensus):

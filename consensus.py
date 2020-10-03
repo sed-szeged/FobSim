@@ -1,18 +1,31 @@
 import blockchain
 import json
 import output
-
 num_of_consensus = 0
+blockchain_CAs = [1, 2, 3]
 
 
 def choose_consensus():
-    output.choose_consensus()
-    global num_of_consensus
-    num_of_consensus = int(input())
-    if num_of_consensus == 2:
-        with open('temporary/miners_stake_amounts.json', 'w') as file:
-            json.dump({}, file, indent=4)
+    while True:
+        output.choose_consensus()
+        global num_of_consensus
+        num_of_consensus = int(input())
+        if check_input(num_of_consensus, blockchain_CAs):
+            if num_of_consensus == 2:
+                with open('temporary/miners_stake_amounts.json', 'w') as file:
+                    json.dump({}, file, indent=4)
+            break
+        else:
+            print("Input is incorrect, try again..!")
     return num_of_consensus
+
+
+def check_input(input_value, reference_list):
+    while True:
+        if input_value in reference_list:
+            return True
+        else:
+            return False
 
 
 def pow_mining(block):

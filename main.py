@@ -27,6 +27,8 @@ NumOfTaskPerUser = data["NumOfTaskPerUser"]
 NumOfMiners = data["NumOfMiners"]
 numOfTXperBlock = data["numOfTXperBlock"]
 num_of_users_per_fog_node = data["num_of_users_per_fog_node"]
+blockchain_functions = [1, 2, 3, 4]
+blockchain_placement_options = [1, 2]
 
 
 def user_input():
@@ -43,12 +45,22 @@ def user_input():
         json.dump({}, awards_log, indent=4)
     with open('temporary/miner_wallets_log.json', 'w') as miner_wallets_log:
         json.dump({}, miner_wallets_log, indent=4)
-    output.choose_functionality()
-    global blockchainFunction
-    blockchainFunction = int(input())
-    output.choose_placement()
-    global blockchainPlacement
-    blockchainPlacement = int(input())
+    while True:
+        output.choose_functionality()
+        global blockchainFunction
+        blockchainFunction = int(input())
+        if consensus.check_input(blockchainFunction, blockchain_functions):
+            break
+        else:
+            print("Input is incorrect, try again..!")
+    while True:
+        output.choose_placement()
+        global blockchainPlacement
+        blockchainPlacement = int(input())
+        if consensus.check_input(blockchainPlacement, blockchain_placement_options):
+            break
+        else:
+            print("Input is incorrect, try again..!")
 
 
 def initiate_network():
@@ -56,7 +68,7 @@ def initiate_network():
         fogNodes.append(Fog.Fog(count + 1))
         for p in range(num_of_users_per_fog_node):
             list_of_end_users.append(end_user.User(p + 1, count+1))
-    print("*****************End_users are up\nFog nodes are up\nEnd-Users are connected to their Fog nodes...\n")
+    print("*****************\nEnd_users are up\nFog nodes are up\nEnd-Users are connected to their Fog nodes...\n")
     if blockchainFunction == 4:
         output.GDPR_warning()
         while True:
@@ -137,7 +149,7 @@ def miners_trigger(the_miners_list, the_type_of_consensus):
         if the_type_of_consensus == 1:
             for obj in the_miners_list:
                 # non-parallel approach
-                obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction)
+                # obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction)
                 # parallel approach
                 process = Process(target=obj.build_block, args=(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction, ))
                 mining_processes.append(process)
