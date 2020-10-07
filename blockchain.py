@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import random
+import time
 
 with open("Sim_parameters.json") as json_file:
     data = json.load(json_file)
@@ -33,8 +34,13 @@ def hashing_function(nonce, transactions, generator_id, previous_hash):
 
 def report_a_successful_block_addition(winning_miner, hash_of_added_block):
     record_exist = False
-    with open("temporary/confirmation_log.json", 'r') as f:
-        temporary_confirmation_log = json.load(f)
+    while True:
+        try:
+            with open("temporary/confirmation_log.json", 'r') as f:
+                temporary_confirmation_log = json.load(f)
+                break
+        except:
+            time.sleep(0.1)
     for key in temporary_confirmation_log:
         if key == hash_of_added_block and winning_miner == temporary_confirmation_log[key]['winning_miner']:
             temporary_confirmation_log[key]['votes'] += 1
@@ -42,9 +48,15 @@ def report_a_successful_block_addition(winning_miner, hash_of_added_block):
             break
     if not record_exist:
         temporary_confirmation_log[str(hash_of_added_block)] = {'winning_miner': winning_miner, 'votes': 1}
-    os.remove(str("temporary/confirmation_log.json"))
-    with open(str("temporary/confirmation_log.json"), "w") as f:
-        json.dump(temporary_confirmation_log, f, indent=4)
+    while True:
+        try:
+            os.remove(str("temporary/confirmation_log.json"))
+            with open(str("temporary/confirmation_log.json"), "w") as f:
+                json.dump(temporary_confirmation_log, f, indent=4)
+                break
+        except:
+            time.sleep(0.1)
+
 
 
 def award_winning_miners(list_of_miner_nodes):
