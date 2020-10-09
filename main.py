@@ -10,6 +10,7 @@ import os
 import shutil
 import mempool
 import output
+import time
 
 
 with open("Sim_parameters.json") as json_file:
@@ -22,6 +23,7 @@ mining_processes = []
 list_of_authorized_miners = []
 blockchainFunction = 0
 blockchainPlacement = 0
+number_of_miner_neighbours = data["number_of_each_miner_neighbours"]
 NumOfFogNodes = data["NumOfFogNodes"]
 NumOfTaskPerUser = data["NumOfTaskPerUser"]
 NumOfMiners = data["NumOfMiners"]
@@ -104,6 +106,10 @@ def initiate_miners():
         with open("temporary/miner_wallets_log.json", 'w') as miner_wallets_log:
             miner_wallets_log_py[str(entity.address)] = data['miners_initial_wallet_value']
             json.dump(miner_wallets_log_py, miner_wallets_log, indent=4)
+        while len(entity.neighbours) < number_of_miner_neighbours:
+            neighbour = random.choice(the_miners_list).address
+            if neighbour != entity.address:
+                entity.neighbours.add(neighbour)
     return the_miners_list
 
 
@@ -134,7 +140,7 @@ def initiate_genesis_block():
     genesis_block = blockchain.generate_new_block(genesis_transactions, 'The Network', 0)
     output.block_info(genesis_block, type_of_consensus)
     for elem in miner_list:
-        elem.receive_new_block(mempool.MemPool, genesis_block, type_of_consensus, miner_list, blockchainFunction)
+        elem.receive_new_block(genesis_block, type_of_consensus, miner_list, blockchainFunction, mempool.discarded_txs)
     output.genesis_block_generation()
 
 
@@ -145,17 +151,17 @@ def send_tasks_to_BC():
 
 def miners_trigger(the_miners_list, the_type_of_consensus):
     output.mempool_info(mempool.MemPool)
-    while mempool.MemPool.qsize() != 0:
+    while mempool.MemPool.qsize() > 0:
         if the_type_of_consensus == 1:
             for obj in the_miners_list:
                 # non-parallel approach
-                # obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction)
+                obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction, mempool.discarded_txs)
                 # parallel approach
-                process = Process(target=obj.build_block, args=(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction, ))
-                mining_processes.append(process)
-                process.start()
-            for mining_process in mining_processes:
-                mining_process.join()
+            #     process = Process(target=obj.build_block, args=(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction, mempool.discarded_txs, ))
+            #     mining_processes.append(process)
+            #     process.start()
+            # for mining_process in mining_processes:
+            #     mining_process.join()
         if the_type_of_consensus == 2:
             randomly_chosen_miners = []
             x = int(round((len(the_miners_list)/2), 0))
@@ -171,10 +177,12 @@ def miners_trigger(the_miners_list, the_type_of_consensus):
                         final_chosen_miner = chosen_miner
                 for entity in the_miners_list:
                     entity.next_pos_block_from = final_chosen_miner.address
-                final_chosen_miner.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction)
+                if mempool.MemPool.qsize() != 0:
+                    final_chosen_miner.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction, mempool.discarded_txs)
         if the_type_of_consensus == 3:
             for obj in miner_list:
-                obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction)
+                if mempool.MemPool.qsize() != 0:
+                    obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction, mempool.discarded_txs)
 
 
 def inform_miners_of_users_wallets():
@@ -201,5 +209,5 @@ if __name__ == '__main__':
     initiate_genesis_block()
     send_tasks_to_BC()
     miners_trigger(miner_list, type_of_consensus)
-    blockchain.award_winning_miners(miner_list)
+    blockchain.award_winning_miners(len(miner_list))
     output.finish()

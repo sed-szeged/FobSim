@@ -58,24 +58,18 @@ def report_a_successful_block_addition(winning_miner, hash_of_added_block):
             time.sleep(0.1)
 
 
-
-def award_winning_miners(list_of_miner_nodes):
+def award_winning_miners(num_of_miners):
     with open(str("temporary/confirmation_log.json"), 'r') as f:
         final_confirmation_log = json.load(f)
     with open("temporary/miner_wallets_log.json", 'r') as miner_final_wallets_log:
         miner_final_wallets_log_py = json.load(miner_final_wallets_log)
     for key in final_confirmation_log:
-        if final_confirmation_log[key]['votes'] > int(len(list_of_miner_nodes)/2):
-            for miner in list_of_miner_nodes:
-                if miner.address == final_confirmation_log[key]['winning_miner']:
-                    miner_final_wallets_log_py[str(miner.address)] += mining_award
+        if final_confirmation_log[key]['votes'] > int(num_of_miners/2):
+            for key1 in miner_final_wallets_log_py:
+                if key1 == final_confirmation_log[key]['winning_miner']:
+                    miner_final_wallets_log_py[key1] += mining_award
     with open(str("temporary/miner_wallets_log.json"), "w") as f:
         json.dump(miner_final_wallets_log_py, f, indent=4)
-
-
-def txs_back_to_memp(returned_transactions, mem_pool):
-    for tx in returned_transactions:
-        mem_pool.put(tx)
 
 
 def stake(list_of_miners, num_of_consensus):

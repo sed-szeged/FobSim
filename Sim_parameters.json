@@ -1,11 +1,12 @@
 {
   "NumOfFogNodes": 5,
   "NumOfTaskPerUser": 5,
-  "NumOfMiners": 4,
+  "NumOfMiners": 5,
   "numOfTXperBlock": 5,
   "num_of_users_per_fog_node": 5,
-  "puzzle_difficulty": 20,
-  "EUs_initial_wallet_value": 1000,
-  "miners_initial_wallet_value": 1000,
+  "puzzle_difficulty": 15,
+  "Max_enduser_payment": 100,
+  "miners_initial_wallet_value": 100,
+  "number_of_each_miner_neighbours": 3,
   "mining_award": 5
 }

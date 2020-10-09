@@ -104,6 +104,25 @@ def illegal_block():
           "\nTransactions will be sent back to the mempool and mined again..!")
 
 
+def unauthorized_miner_msg(miner_address):
+    print("Miner: " + miner_address + " is not authorized to generate a new block..!")
+
+
+def block_discarded():
+    print("The received block was ignored because it is already in the local chain")
+
+
+def local_chain_is_updated(miner_address, no_votes, length_of_local_chain):
+    print("Using the Gossip protocol of FoBSim, the local chain of the following miner was updated:")
+    print("Miner: " + str(miner_address))
+    print("Number of neighbours who voted for this version of chain: " + str(no_votes))
+    print("The length of the new local chain: " + str(length_of_local_chain))
+
+
+def mempool_is_empty():
+    print("mempool is empty")
+
+
 def finish():
     print("simulation is done.")
     print("To check/analyze the experiment, please refer to the temporary folder.")

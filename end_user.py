@@ -13,7 +13,7 @@ class User:
         self.addressSelf = address
         self.tasks = []
         self.identity_added_attributes = {}
-        self.wallet = data["EUs_initial_wallet_value"]
+        self.wallet = data["Max_enduser_payment"] * data["NumOfTaskPerUser"]
 
     def create_tasks(self, num_of_task_per_user, blockchain_function, list_of_end_users):
         if blockchain_function == 1:
@@ -29,7 +29,7 @@ class User:
                 self.tasks.append([self.addressParent, self.addressSelf, random_computational_task])
         if blockchain_function == 3:
             for i in range(num_of_task_per_user):
-                payment = randrange(round(self.wallet/len(list_of_end_users), 0))
+                payment = randrange(round(data["Max_enduser_payment"], 0))
                 receiver = random.choice(list_of_end_users)
                 receiver_parent_address = receiver.addressParent
                 receiver_individual_address = receiver.addressSelf
