@@ -43,7 +43,7 @@ class Miner:
                     break
             except:
                 time.sleep(0.3)
-        print("a new block is received from " + str(new_block['generator_id']))
+        # print("a new block is received from " + str(new_block['generator_id']))
         condition_1 = (len(local_chain_temporary_file) == 0) and (new_block['generator_id'] == 'The Network')
         if condition_1:
             self.add(new_block, blockchain_function)
@@ -67,8 +67,8 @@ class Miner:
                     if new_block['transactions']:
                         for tx in new_block['transactions']:
                             discarded_txs.put(tx)
-            else:
-                output.block_discarded()
+            # else:
+            #     output.block_discarded()
 
     def validate_transactions(self, list_of_new_transactions, miner_role):
         while True:
@@ -166,7 +166,7 @@ class Miner:
                     break
             if not key_exist:
                 lengths_of_confirmed_chains[str(hashing(local_chain_temp_file))] = [local_chain_temp_file, len(local_chain_temp_file), neighbour]
-        length_of_longest_chain = 0
+        length_of_longest_chain = len(confirmed_chain)
         for key in lengths_of_confirmed_chains:
             if lengths_of_confirmed_chains[key][1] > length_of_longest_chain:
                 local_chain_is_updated = True
