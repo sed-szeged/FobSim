@@ -16,7 +16,6 @@ class Miner:
         self.neighbours = set()
 
     def build_block(self, num_of_tx_per_block, mempool, miner_list, type_of_consensus, blockchain_function, discarded_txs):
-        self.gossip(blockchain_function)
         if type_of_consensus == 3 and not self.isAuthorized:
             output.unauthorized_miner_msg(self.address)
         else:
@@ -33,6 +32,8 @@ class Miner:
                 for elem in miner_list:
                     if elem.address in self.neighbours:
                         elem.receive_new_block(new_block, type_of_consensus, miner_list, blockchain_function, discarded_txs)
+            else:
+                pass
 
     def receive_new_block(self, new_block, type_of_consensus, miner_list, blockchain_function, discarded_txs):
         while True:
@@ -60,6 +61,7 @@ class Miner:
                         if elem.address in self.neighbours:
                             elem.receive_new_block(new_block, type_of_consensus, miner_list, blockchain_function,
                                                    discarded_txs)
+                    self.gossip(blockchain_function)
                 else:
                     output.illegal_block()
                     if new_block['transactions']:
@@ -77,20 +79,22 @@ class Miner:
             except:
                 time.sleep(0.1)
         if list_of_new_transactions:
-            for tx in list_of_new_transactions:
-                for key in user_wallets_temporary_file:
+            for key in user_wallets_temporary_file:
+                for transaction in list_of_new_transactions:
                     if miner_role == "receiver":
-                        if key == (str(tx[1]) + "." + str(tx[2])):
-                            if user_wallets_temporary_file[key]['wallet_value'] >= tx[0]:
-                                user_wallets_temporary_file[key]['wallet_value'] -= tx[0]
+                        if key == (str(transaction[1]) + "." + str(transaction[2])):
+                            if user_wallets_temporary_file[key]['wallet_value'] >= transaction[0]:
+                                user_wallets_temporary_file[key]['wallet_value'] -= transaction[0]
                             else:
                                 return False
-                        if key == (str(tx[3]) + "." + str(tx[4])):
-                            user_wallets_temporary_file[key]['wallet_value'] += tx[0]
+                        if key == (str(transaction[3]) + "." + str(transaction[4])):
+                            user_wallets_temporary_file[key]['wallet_value'] += transaction[0]
                     if miner_role == "generator":
-                        if user_wallets_temporary_file[key]['wallet_value'] < tx[0]:
-                            output.illegal_tx(tx, user_wallets_temporary_file[key]['wallet_value'])
-                            del tx
+                        if user_wallets_temporary_file[key]['wallet_value'] < transaction[0]:
+                            output.illegal_tx(transaction, user_wallets_temporary_file[key]['wallet_value'])
+                            del transaction
+        if miner_role == "generator":
+            return list_of_new_transactions
         if miner_role == "receiver":
             while True:
                 try:
@@ -101,8 +105,6 @@ class Miner:
                 except:
                     time.sleep(0.1)
             return True
-        if miner_role == "generator":
-            return list_of_new_transactions
 
     def add(self, block, blockchain_function):
         ready = False
@@ -146,8 +148,7 @@ class Miner:
             except:
                 time.sleep(0.01)
         confirmed_chain = local_chain_temporary_file
-        max_votes_for_confirmed_chain = 1
-        votes_for_confirmed_chain = {str(hashing(local_chain_temporary_file)): [local_chain_temporary_file, 1, self.address]}
+        lengths_of_confirmed_chains = {str(hashing(local_chain_temporary_file)): [local_chain_temporary_file, len(local_chain_temporary_file), self.address]}
         confirmed_chain_from = self.address
         local_chain_is_updated = False
         for neighbour in self.neighbours:
@@ -159,21 +160,20 @@ class Miner:
                         break
                 except:
                     time.sleep(0.1)
-            for key in votes_for_confirmed_chain:
+            for key in lengths_of_confirmed_chains:
                 if key == str(hashing(local_chain_temp_file)):
-                    votes_for_confirmed_chain[key][1] += 1
                     key_exist = True
                     break
             if not key_exist:
-                votes_for_confirmed_chain[str(hashing(local_chain_temp_file))] = [local_chain_temp_file, 1, neighbour]
-        for key in votes_for_confirmed_chain:
-            temp_list = votes_for_confirmed_chain[key]
-            if temp_list[1] > max_votes_for_confirmed_chain:
+                lengths_of_confirmed_chains[str(hashing(local_chain_temp_file))] = [local_chain_temp_file, len(local_chain_temp_file), neighbour]
+        length_of_longest_chain = 0
+        for key in lengths_of_confirmed_chains:
+            if lengths_of_confirmed_chains[key][1] > length_of_longest_chain:
                 local_chain_is_updated = True
-                confirmed_chain = temp_list[0]
-                max_votes_for_confirmed_chain = temp_list[1]
-                confirmed_chain_from = temp_list[2]
-        if local_chain_is_updated:
+                confirmed_chain = lengths_of_confirmed_chains[key][0]
+                length_of_longest_chain = lengths_of_confirmed_chains[key][1]
+                confirmed_chain_from = lengths_of_confirmed_chains[key][2]
+        if local_chain_is_updated and confirmed_chain_from != self.address:
             while True:
                 try:
                     os.remove(str("temporary/" + self.address + "_local_chain.json"))
@@ -189,7 +189,7 @@ class Miner:
                 except:
                     time.sleep(0.1)
             self.top_block = confirmed_chain[str(len(confirmed_chain)-1)]
-            output.local_chain_is_updated(self.address, max_votes_for_confirmed_chain, len(confirmed_chain))
+            output.local_chain_is_updated(self.address, len(confirmed_chain))
 
 
 def hashing(dictionary):
@@ -202,18 +202,23 @@ def accumulate_transactions(num_of_tx_per_block, mempool, blockchain_function, m
     lst_of_transactions = []
     if blockchain_function == 2:
         if mempool.qsize() > 0:
-            transaction = mempool.get()
-            transaction.append(eval(transaction[2]))
-            produced_transaction = ['End-user address: ' + str(transaction[0]) + '.' + str(transaction[1]),
-                                    'Requested computational task: ' + str(transaction[2]), 'Result: '
-                                    + str(transaction[3]), "miner: " + str(miner_address)]
-            return produced_transaction
-        else:
-            output.mempool_is_empty()
+            try:
+                lst_of_transactions = mempool.get(True, 1)
+                lst_of_transactions.append(eval(lst_of_transactions[2]))
+                produced_transaction = ['End-user address: ' + str(lst_of_transactions[0]) + '.' + str(lst_of_transactions[1]),
+                                        'Requested computational task: ' + str(lst_of_transactions[2]), 'Result: '
+                                        + str(lst_of_transactions[3]), "miner: " + str(miner_address)]
+                return produced_transaction
+            except:
+                print("error in accumulating new TXs")
+
     else:
         for i in range(num_of_tx_per_block):
             if mempool.qsize() > 0:
-                lst_of_transactions.append(mempool.get())
+                try:
+                    lst_of_transactions.append(mempool.get(True, 1))
+                except:
+                    print("error in accumulating full new list of TXs")
             else:
                 output.mempool_is_empty()
                 break

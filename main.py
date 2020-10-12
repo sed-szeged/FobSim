@@ -11,6 +11,7 @@ import shutil
 import mempool
 import output
 import time
+from math import ceil
 
 
 with open("Sim_parameters.json") as json_file:
@@ -31,6 +32,7 @@ numOfTXperBlock = data["numOfTXperBlock"]
 num_of_users_per_fog_node = data["num_of_users_per_fog_node"]
 blockchain_functions = [1, 2, 3, 4]
 blockchain_placement_options = [1, 2]
+expected_chain_length = ceil((num_of_users_per_fog_node * NumOfTaskPerUser * NumOfFogNodes) / numOfTXperBlock)
 
 
 def user_input():
@@ -151,17 +153,17 @@ def send_tasks_to_BC():
 
 def miners_trigger(the_miners_list, the_type_of_consensus):
     output.mempool_info(mempool.MemPool)
-    while mempool.MemPool.qsize() > 0:
+    for counter in range(expected_chain_length):
         if the_type_of_consensus == 1:
-            for obj in the_miners_list:
-                # non-parallel approach
-                obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction, mempool.discarded_txs)
-                # parallel approach
-            #     process = Process(target=obj.build_block, args=(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction, mempool.discarded_txs, ))
-            #     mining_processes.append(process)
-            #     process.start()
-            # for mining_process in mining_processes:
-            #     mining_process.join()
+            obj = random.choice(the_miners_list)
+            # non-parallel approach
+            # obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction, mempool.discarded_txs)
+            # parallel approach
+            process = Process(target=obj.build_block, args=(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction, mempool.discarded_txs, ))
+            mining_processes.append(process)
+            process.start()
+        for mining_process in mining_processes:
+            mining_process.join()
         if the_type_of_consensus == 2:
             randomly_chosen_miners = []
             x = int(round((len(the_miners_list)/2), 0))

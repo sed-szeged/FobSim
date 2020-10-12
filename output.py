@@ -112,10 +112,9 @@ def block_discarded():
     print("The received block was ignored because it is already in the local chain")
 
 
-def local_chain_is_updated(miner_address, no_votes, length_of_local_chain):
+def local_chain_is_updated(miner_address, length_of_local_chain):
     print("Using the Gossip protocol of FoBSim, the local chain of the following miner was updated:")
     print("Miner: " + str(miner_address))
-    print("Number of neighbours who voted for this version of chain: " + str(no_votes))
     print("The length of the new local chain: " + str(length_of_local_chain))
 
 
