@@ -30,8 +30,8 @@ NumOfTaskPerUser = data["NumOfTaskPerUser"]
 NumOfMiners = data["NumOfMiners"]
 numOfTXperBlock = data["numOfTXperBlock"]
 num_of_users_per_fog_node = data["num_of_users_per_fog_node"]
-blockchain_functions = [1, 2, 3, 4]
-blockchain_placement_options = [1, 2]
+blockchain_functions = ['1', '2', '3', '4']
+blockchain_placement_options = ['1', '2']
 expected_chain_length = ceil((num_of_users_per_fog_node * NumOfTaskPerUser * NumOfFogNodes) / numOfTXperBlock)
 
 
@@ -52,16 +52,18 @@ def user_input():
     while True:
         output.choose_functionality()
         global blockchainFunction
-        blockchainFunction = int(input())
+        blockchainFunction = input()
         if consensus.check_input(blockchainFunction, blockchain_functions):
+            blockchainFunction = int(blockchainFunction)
             break
         else:
             print("Input is incorrect, try again..!")
     while True:
         output.choose_placement()
         global blockchainPlacement
-        blockchainPlacement = int(input())
+        blockchainPlacement = input()
         if consensus.check_input(blockchainPlacement, blockchain_placement_options):
+            blockchainPlacement = int(blockchainPlacement)
             break
         else:
             print("Input is incorrect, try again..!")
@@ -71,8 +73,8 @@ def initiate_network():
     for count in range(NumOfFogNodes):
         fogNodes.append(Fog.Fog(count + 1))
         for p in range(num_of_users_per_fog_node):
-            list_of_end_users.append(end_user.User(p + 1, count+1))
-    print("*****************\nEnd_users are up\nFog nodes are up\nEnd-Users are connected to their Fog nodes...\n")
+            list_of_end_users.append(end_user.User(p + 1, count + 1))
+    output.users_and_fogs_are_up()
     if blockchainFunction == 4:
         output.GDPR_warning()
         while True:
@@ -83,9 +85,7 @@ def initiate_network():
             else:
                 for user in list_of_end_users:
                     user.identity_added_attributes[new_attribute] = ''
-                print("The network has " + str(len(list_of_end_users)) +
-                      " end_users.\n For each of them, you need to input the value of newly added identity "
-                      "attributes(if any)\n")
+                output.user_identity_addition_reminder(len(list_of_end_users))
     for user in list_of_end_users:
         user.create_tasks(NumOfTaskPerUser, blockchainFunction, list_of_end_users)
         user.send_tasks(fogNodes)
@@ -101,7 +101,6 @@ def initiate_miners():
     if blockchainPlacement == 2:
         for i in range(NumOfMiners):
             the_miners_list.append(miner.Miner(i + 1))
-    output.miners_are_up()
     for entity in the_miners_list:
         with open(str("temporary/" + entity.address + "_local_chain.json"), "w") as f:
             json.dump({}, f)
@@ -112,6 +111,7 @@ def initiate_miners():
             neighbour = random.choice(the_miners_list).address
             if neighbour != entity.address:
                 entity.neighbours.add(neighbour)
+    output.miners_are_up()
     return the_miners_list
 
 

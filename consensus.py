@@ -2,15 +2,16 @@ import blockchain
 import json
 import output
 num_of_consensus = 0
-blockchain_CAs = [1, 2, 3]
+blockchain_CAs = ['1', '2', '3']
 
 
 def choose_consensus():
     while True:
         output.choose_consensus()
         global num_of_consensus
-        num_of_consensus = int(input())
+        num_of_consensus = input()
         if check_input(num_of_consensus, blockchain_CAs):
+            num_of_consensus = int(num_of_consensus)
             if num_of_consensus == 2:
                 with open('temporary/miners_stake_amounts.json', 'w') as file:
                     json.dump({}, file, indent=4)

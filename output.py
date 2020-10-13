@@ -89,7 +89,7 @@ def GDPR_warning():
 
 
 def miners_are_up():
-    print("*****************\nMiner nodes are up and waiting for the genesis block...!\n")
+    print("*****************\nMiner nodes are up, connected to their neighbors, and waiting for the genesis block...!\n")
 
 
 def illegal_tx(tx, wallet_content):
@@ -110,6 +110,16 @@ def unauthorized_miner_msg(miner_address):
 
 def block_discarded():
     print("The received block was ignored because it is already in the local chain")
+
+
+def users_and_fogs_are_up():
+    print("*****************\nEnd_users are up\nFog nodes are up\nEnd-Users are connected to their Fog nodes...\n")
+
+
+def user_identity_addition_reminder(Num_endusers):
+    print("The network has " + str(Num_endusers) +
+          " end_users.\n For each of them, you need to input the value of newly added identity "
+          "attributes(if any)\n")
 
 
 def local_chain_is_updated(miner_address, length_of_local_chain):
