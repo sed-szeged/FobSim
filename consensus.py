@@ -41,9 +41,10 @@ def pow_mining(block):
 
 def pow_block_is_valid(block, expected_previous_hash):
     block_is_valid = False
-    if block['hash'] == blockchain.hashing_function(block['nonce'], block['transactions'], block['generator_id'], expected_previous_hash):
-        if int(block['hash'], 16) <= blockchain.target:
-            block_is_valid = True
+    condition_1 = block['hash'] == blockchain.hashing_function(block['nonce'], block['transactions'], block['generator_id'], expected_previous_hash)
+    condition_2 = int(block['hash'], 16) <= blockchain.target
+    if condition_1 and condition_2:
+        block_is_valid = True
     return block_is_valid
 
 

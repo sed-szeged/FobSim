@@ -5,17 +5,20 @@ import os
 import time
 import output
 import hashlib
+from random import randrange
+from multiprocessing import Process
 
 
 class Miner:
-    def __init__(self, address):
+    def __init__(self, address, trans_delay):
         self.address = "Miner_" + str(address)
         self.top_block = {}
         self.isAuthorized = False
         self.next_pos_block_from = self.address
         self.neighbours = set()
+        self.trans_delay = trans_delay/1000
 
-    def build_block(self, num_of_tx_per_block, mempool, miner_list, type_of_consensus, blockchain_function, discarded_txs):
+    def build_block(self, num_of_tx_per_block, mempool, miner_list, type_of_consensus, blockchain_function, discarded_txs, expected_chain_length):
         if type_of_consensus == 3 and not self.isAuthorized:
             output.unauthorized_miner_msg(self.address)
         else:
@@ -25,17 +28,17 @@ class Miner:
                 if blockchain_function == 3:
                     transactions = self.validate_transactions(transactions, "generator")
                 if type_of_consensus == 1:
+                    # self.gossip(blockchain_function, miner_list)
                     new_block = consensus.pow_mining(blockchain.generate_new_block(transactions, self.address, self.top_block['hash']))
                 if type_of_consensus == 2 or (type_of_consensus == 3 and self.isAuthorized):
                     new_block = blockchain.generate_new_block(transactions, self.address, self.top_block['hash'])
                 output.block_info(new_block, type_of_consensus)
+                time.sleep(self.trans_delay)
                 for elem in miner_list:
                     if elem.address in self.neighbours:
-                        elem.receive_new_block(new_block, type_of_consensus, miner_list, blockchain_function, discarded_txs)
-            else:
-                pass
+                        elem.receive_new_block(new_block, type_of_consensus, miner_list, blockchain_function, discarded_txs, expected_chain_length)
 
-    def receive_new_block(self, new_block, type_of_consensus, miner_list, blockchain_function, discarded_txs):
+    def receive_new_block(self, new_block, type_of_consensus, miner_list, blockchain_function, discarded_txs, expected_chain_length):
         while True:
             try:
                 with open(str("temporary/" + self.address + "_local_chain.json"), 'r') as f:
@@ -46,7 +49,7 @@ class Miner:
         # print("a new block is received from " + str(new_block['generator_id']))
         condition_1 = (len(local_chain_temporary_file) == 0) and (new_block['generator_id'] == 'The Network')
         if condition_1:
-            self.add(new_block, blockchain_function)
+            self.add(new_block, blockchain_function, expected_chain_length)
         else:
             list_of_hashes_in_local_chain = []
             for key in local_chain_temporary_file:
@@ -56,17 +59,16 @@ class Miner:
                 condition_3 = type_of_consensus == 2 and new_block['generator_id'] == self.next_pos_block_from
                 condition_4 = type_of_consensus == 3 and consensus.poa_block_is_valid(new_block, self.top_block['hash'], miner_list)
                 if condition_2 or condition_3 or condition_4:
-                    self.add(new_block, blockchain_function)
+                    self.add(new_block, blockchain_function, expected_chain_length)
+                    time.sleep(self.trans_delay)
                     for elem in miner_list:
                         if elem.address in self.neighbours:
-                            elem.receive_new_block(new_block, type_of_consensus, miner_list, blockchain_function,
-                                                   discarded_txs)
-                    self.gossip(blockchain_function)
-                else:
-                    output.illegal_block()
-                    if new_block['transactions']:
-                        for tx in new_block['transactions']:
-                            discarded_txs.put(tx)
+                            elem.receive_new_block(new_block, type_of_consensus, miner_list, blockchain_function, discarded_txs, expected_chain_length)
+                # else:
+                #     output.illegal_block()
+                #     if new_block['transactions']:
+                #         for tx in new_block['transactions']:
+                #             discarded_txs.put(tx)
             # else:
             #     output.block_discarded()
 
@@ -89,7 +91,7 @@ class Miner:
                                 return False
                         if key == (str(transaction[3]) + "." + str(transaction[4])):
                             user_wallets_temporary_file[key]['wallet_value'] += transaction[0]
-                    if miner_role == "generator":
+                    if miner_role == "generator" and key == (str(transaction[1]) + "." + str(transaction[2])):
                         if user_wallets_temporary_file[key]['wallet_value'] < transaction[0]:
                             output.illegal_tx(transaction, user_wallets_temporary_file[key]['wallet_value'])
                             del transaction
@@ -106,7 +108,7 @@ class Miner:
                     time.sleep(0.1)
             return True
 
-    def add(self, block, blockchain_function):
+    def add(self, block, blockchain_function, expected_chain_length):
         ready = False
         while True:
             try:
@@ -119,15 +121,14 @@ class Miner:
         if len(local_chain_temporary_file) == 0:
             ready = True
         else:
-            if blockchain_function != 3 or (
-                    blockchain_function == 3 and self.validate_transactions(block['transactions'], "receiver")):
+            condition = blockchain_function == 3 and self.validate_transactions(block['transactions'], "receiver")
+            if blockchain_function != 3 or condition:
                 if block['previous_hash'] == self.top_block['hash']:
-                    blockchain.report_a_successful_block_addition(block['generator_id'], block['hash'])
-                    output.block_success_addition(self.address, block['generator_id'])
+                    blockchain.report_a_successful_block_addition(block['generator_id'], block['hash'], expected_chain_length)
+                    # output.block_success_addition(self.address, block['generator_id'])
                     ready = True
         if ready:
             block['blockNo'] = len(local_chain_temporary_file)
-            block['timestamp'] = time.ctime()
             self.top_block = block
             local_chain_temporary_file[str(len(local_chain_temporary_file))] = block
             while True:
@@ -139,7 +140,7 @@ class Miner:
                 except:
                     time.sleep(0.1)
 
-    def gossip(self, blockchain_function):
+    def gossip(self, blockchain_function, list_of_miners):
         while True:
             try:
                 with open(str("temporary/" + self.address + "_local_chain.json"), "r") as f:
@@ -148,24 +149,25 @@ class Miner:
             except:
                 time.sleep(0.01)
         confirmed_chain = local_chain_temporary_file
-        lengths_of_confirmed_chains = {str(hashing(local_chain_temporary_file)): [local_chain_temporary_file, len(local_chain_temporary_file), self.address]}
+        lengths_of_confirmed_chains = {str(hashing(local_chain_temporary_file)): [local_chain_temporary_file, len(local_chain_temporary_file), self.address, 1]}
         confirmed_chain_from = self.address
         local_chain_is_updated = False
-        for neighbour in self.neighbours:
+        for miner in list_of_miners:
             key_exist = False
             while True:
                 try:
-                    with open(str("temporary/" + neighbour + "_local_chain.json"), "r") as f:
+                    with open(str("temporary/" + miner.address + "_local_chain.json"), "r") as f:
                         local_chain_temp_file = json.load(f)
                         break
                 except:
-                    time.sleep(0.1)
+                    time.sleep(0.02)
             for key in lengths_of_confirmed_chains:
                 if key == str(hashing(local_chain_temp_file)):
+                    lengths_of_confirmed_chains[key][3] += 1
                     key_exist = True
                     break
             if not key_exist:
-                lengths_of_confirmed_chains[str(hashing(local_chain_temp_file))] = [local_chain_temp_file, len(local_chain_temp_file), neighbour]
+                lengths_of_confirmed_chains[str(hashing(local_chain_temp_file))] = [local_chain_temp_file, len(local_chain_temp_file), miner.address, 1]
         length_of_longest_chain = len(confirmed_chain)
         for key in lengths_of_confirmed_chains:
             if lengths_of_confirmed_chains[key][1] > length_of_longest_chain:
@@ -173,18 +175,28 @@ class Miner:
                 confirmed_chain = lengths_of_confirmed_chains[key][0]
                 length_of_longest_chain = lengths_of_confirmed_chains[key][1]
                 confirmed_chain_from = lengths_of_confirmed_chains[key][2]
+                break
         if local_chain_is_updated and confirmed_chain_from != self.address:
+            while True:
+                try:
+                    with open(str("temporary/forking_log.json"), "w") as forking_log:
+                        forking_log_temp = json.load(forking_log)
+                        forking_log_temp["Number of times a fork appeared"] += 1
+                        json.dump(forking_log_temp, forking_log, indent=4)
+                        break
+                except:
+                    time.sleep(0.1)
             while True:
                 try:
                     os.remove(str("temporary/" + self.address + "_local_chain.json"))
                     with open(str("temporary/" + self.address + "_local_chain.json"), "w") as m:
                         json.dump(confirmed_chain, m, indent=4)
-                        if blockchain_function == 3:
-                            with open(str("temporary/" + confirmed_chain_from + "_users_wallets.json"), "r") as t:
-                                user_wallets_temp_file = json.load(t)
-                            os.remove(str("temporary/" + self.address + "_users_wallets.json"))
-                            with open(str("temporary/" + self.address + "_users_wallets.json"), "w") as n:
-                                json.dump(user_wallets_temp_file, n, indent=4)
+                    if blockchain_function == 3:
+                        with open(str("temporary/" + confirmed_chain_from + "_users_wallets.json"), "r") as t:
+                            user_wallets_temp_file = json.load(t)
+                        os.remove(str("temporary/" + self.address + "_users_wallets.json"))
+                        with open(str("temporary/" + self.address + "_users_wallets.json"), "w") as n:
+                            json.dump(user_wallets_temp_file, n, indent=4)
                     break
                 except:
                     time.sleep(0.1)

@@ -20,7 +20,6 @@ class User:
             for l in range(num_of_task_per_user):
                 self.tasks.append(random.randint(0, 1000000))
             output.txs_success(num_of_task_per_user, self.addressParent, self.addressSelf)
-
         if blockchain_function == 2:
             operations = ['+', '-', '*', '/']
             for i in range(num_of_task_per_user):

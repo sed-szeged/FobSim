@@ -29,6 +29,18 @@ def block_success_addition(self_address, generator_id):
         print("##############################\n")
 
 
+def simulation_progress(current_chain_length, expected_chain_length):
+    print("The simulation have passed " + str(100*((current_chain_length+1)/expected_chain_length)) + "% of TXs to miners")
+    print("Miners will mint new valid blocks and generate them to The BC network")
+
+
+def fork_analysis(number_of_forks):
+    if number_of_forks == 1:
+        print("\n##############################\nThere were no forks during this run\n#############################\n")
+    else:
+        print("\n##############################\nAs the simulation is finished, " + str(number_of_forks) + " different versions of chains were found\n#############################\n")
+
+
 def mempool_info(mempool):
     print('mempool contains the following TXs:')
     txs = []

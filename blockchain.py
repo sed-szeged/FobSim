@@ -1,9 +1,10 @@
-import time
 import hashlib
 import json
 import os
 import random
 import time
+import output
+
 
 with open("Sim_parameters.json") as json_file:
     data = json.load(json_file)
@@ -32,7 +33,7 @@ def hashing_function(nonce, transactions, generator_id, previous_hash):
     return h.hexdigest()
 
 
-def report_a_successful_block_addition(winning_miner, hash_of_added_block):
+def report_a_successful_block_addition(winning_miner, hash_of_added_block, expected_chain_length):
     record_exist = False
     while True:
         try:
@@ -87,3 +88,19 @@ def stake(list_of_miners, num_of_consensus):
                 json.dump(temp_miner_wallets_log_py, f, indent=4)
             with open('temporary/miners_stake_amounts.json', "w") as f:
                 json.dump(temp_miners_stake_amounts_py, f, indent=4)
+
+
+def fork_analysis(list_of_miners):
+    chain_versions = []
+    for entity in list_of_miners:
+        with open("temporary/" + entity.address + "_local_chain.json", 'r') as miner_chain:
+            chain = json.load(miner_chain)
+        h = hashlib.sha256()
+        h.update(str(chain).encode(encoding='UTF-8'))
+        hashed_chain = h.hexdigest()
+        if hashed_chain in chain_versions:
+            pass
+        else:
+            chain_versions.append(hashed_chain)
+    output.fork_analysis(len(chain_versions))
+

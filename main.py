@@ -33,6 +33,7 @@ num_of_users_per_fog_node = data["num_of_users_per_fog_node"]
 blockchain_functions = ['1', '2', '3', '4']
 blockchain_placement_options = ['1', '2']
 expected_chain_length = ceil((num_of_users_per_fog_node * NumOfTaskPerUser * NumOfFogNodes) / numOfTXperBlock)
+trans_delay = data["delay_between_neighbors(ms)"]
 
 
 def user_input():
@@ -49,6 +50,8 @@ def user_input():
         json.dump({}, awards_log, indent=4)
     with open('temporary/miner_wallets_log.json', 'w') as miner_wallets_log:
         json.dump({}, miner_wallets_log, indent=4)
+    with open('temporary/forking_log.json', 'w') as forking_log:
+        json.dump({"Number of times a fork appeared": 0}, forking_log, indent=4)
     while True:
         output.choose_functionality()
         global blockchainFunction
@@ -97,22 +100,57 @@ def initiate_miners():
     miner_wallets_log_py = {}
     if blockchainPlacement == 1:
         for i in range(NumOfFogNodes):
-            the_miners_list.append(miner.Miner(i + 1))
+            the_miners_list.append(miner.Miner(i + 1, trans_delay))
     if blockchainPlacement == 2:
         for i in range(NumOfMiners):
-            the_miners_list.append(miner.Miner(i + 1))
+            the_miners_list.append(miner.Miner(i + 1, trans_delay))
     for entity in the_miners_list:
         with open(str("temporary/" + entity.address + "_local_chain.json"), "w") as f:
             json.dump({}, f)
         with open("temporary/miner_wallets_log.json", 'w') as miner_wallets_log:
             miner_wallets_log_py[str(entity.address)] = data['miners_initial_wallet_value']
             json.dump(miner_wallets_log_py, miner_wallets_log, indent=4)
-        while len(entity.neighbours) < number_of_miner_neighbours:
-            neighbour = random.choice(the_miners_list).address
-            if neighbour != entity.address:
-                entity.neighbours.add(neighbour)
+    connect_miners(the_miners_list)
     output.miners_are_up()
     return the_miners_list
+
+
+def connect_miners(miners_list):
+    print("Miners will be connected in a P2P fashion now. Hold on...")
+    all_components = set()
+    bridges = set()
+    component = set()
+    for entity in miners_list:
+        component.clear()
+        while len(entity.neighbours) < number_of_miner_neighbours:
+            neighbour = random.choice(miners_list).address
+            if neighbour != entity.address:
+                entity.neighbours.add(neighbour)
+                component.add(neighbour)
+                for entity_2 in miners_list:
+                    if entity_2.address == neighbour:
+                        entity_2.neighbours.add(entity.address)
+                        component.add(entity.address)
+                        break
+        if component:
+            all_components.add(tuple(component))
+    for comp in all_components:
+        bridge = random.choice(tuple(comp))
+        bridges.add(bridge)
+    while len(bridges) != 1:
+        bridge = random.choice(tuple(bridges))
+        other_bridge = random.choice(tuple(bridges))
+        same_bridge = True
+        while same_bridge:
+            other_bridge = random.choice(tuple(bridges))
+            if other_bridge != bridge:
+                same_bridge = False
+        for entity in miners_list:
+            if entity.address == bridge:
+                entity.neighbours.add(other_bridge)
+            if entity.address == other_bridge:
+                entity.neighbours.add(bridge)
+        bridges.remove(bridge)
 
 
 def give_miners_authorization(the_miners_list, the_type_of_consensus):
@@ -142,7 +180,7 @@ def initiate_genesis_block():
     genesis_block = blockchain.generate_new_block(genesis_transactions, 'The Network', 0)
     output.block_info(genesis_block, type_of_consensus)
     for elem in miner_list:
-        elem.receive_new_block(genesis_block, type_of_consensus, miner_list, blockchainFunction, mempool.discarded_txs)
+        elem.receive_new_block(genesis_block, type_of_consensus, miner_list, blockchainFunction, mempool.discarded_txs, expected_chain_length)
     output.genesis_block_generation()
 
 
@@ -153,18 +191,20 @@ def send_tasks_to_BC():
 
 def miners_trigger(the_miners_list, the_type_of_consensus):
     output.mempool_info(mempool.MemPool)
-    for counter in range(expected_chain_length):
-        if the_type_of_consensus == 1:
+    if the_type_of_consensus == 1:
+        for counter in range(expected_chain_length):
             obj = random.choice(the_miners_list)
             # non-parallel approach
-            # obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction, mempool.discarded_txs)
+            # obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction, mempool.discarded_txs, expected_chain_length)
             # parallel approach
-            process = Process(target=obj.build_block, args=(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction, mempool.discarded_txs, ))
-            mining_processes.append(process)
+            process = Process(target=obj.build_block, args=(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction, mempool.discarded_txs, expected_chain_length, ))
             process.start()
-        for mining_process in mining_processes:
-            mining_process.join()
-        if the_type_of_consensus == 2:
+            mining_processes.append(process)
+            output.simulation_progress(counter, expected_chain_length)
+        for process in mining_processes:
+            process.join()
+    if the_type_of_consensus == 2:
+        for counter in range(expected_chain_length):
             randomly_chosen_miners = []
             x = int(round((len(the_miners_list)/2), 0))
             for i in range(x):
@@ -180,11 +220,14 @@ def miners_trigger(the_miners_list, the_type_of_consensus):
                 for entity in the_miners_list:
                     entity.next_pos_block_from = final_chosen_miner.address
                 if mempool.MemPool.qsize() != 0:
-                    final_chosen_miner.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction, mempool.discarded_txs)
-        if the_type_of_consensus == 3:
+                    final_chosen_miner.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction, mempool.discarded_txs, expected_chain_length)
+            output.simulation_progress(counter, expected_chain_length)
+    if the_type_of_consensus == 3:
+        for counter in range(expected_chain_length):
             for obj in miner_list:
                 if mempool.MemPool.qsize() != 0:
-                    obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction, mempool.discarded_txs)
+                    obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction, mempool.discarded_txs, expected_chain_length)
+            output.simulation_progress(counter, expected_chain_length)
 
 
 def inform_miners_of_users_wallets():
@@ -212,4 +255,5 @@ if __name__ == '__main__':
     send_tasks_to_BC()
     miners_trigger(miner_list, type_of_consensus)
     blockchain.award_winning_miners(len(miner_list))
+    blockchain.fork_analysis(miner_list)
     output.finish()
