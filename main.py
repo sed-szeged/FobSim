@@ -51,8 +51,9 @@ def user_input():
         json.dump({}, awards_log, indent=4)
     with open('temporary/miner_wallets_log.json', 'w') as miner_wallets_log:
         json.dump({}, miner_wallets_log, indent=4)
-    with open('temporary/longest_chain.json', 'w') as longest_chain:
-        json.dump({'chain': {}, 'from': 'Miner_1'}, longest_chain, indent=4)
+    if gossip_activated:
+        with open('temporary/longest_chain.json', 'w') as longest_chain:
+            json.dump({'chain': {}, 'from': 'Miner_1'}, longest_chain, indent=4)
     while True:
         output.choose_functionality()
         global blockchainFunction
