@@ -103,4 +103,6 @@ def fork_analysis(list_of_miners):
         else:
             chain_versions.append(hashed_chain)
     output.fork_analysis(len(chain_versions))
+    with open('temporary/forking_log.json', 'w') as forking_log:
+        json.dump({"Number of times a fork appeared": len(chain_versions) - 1}, forking_log, indent=4)
 

@@ -34,6 +34,7 @@ blockchain_functions = ['1', '2', '3', '4']
 blockchain_placement_options = ['1', '2']
 expected_chain_length = ceil((num_of_users_per_fog_node * NumOfTaskPerUser * NumOfFogNodes) / numOfTXperBlock)
 trans_delay = data["delay_between_neighbors(ms)"]
+gossip_activated = data["Gossip_Activated"]
 
 
 def user_input():
@@ -50,8 +51,8 @@ def user_input():
         json.dump({}, awards_log, indent=4)
     with open('temporary/miner_wallets_log.json', 'w') as miner_wallets_log:
         json.dump({}, miner_wallets_log, indent=4)
-    with open('temporary/forking_log.json', 'w') as forking_log:
-        json.dump({"Number of times a fork appeared": 0}, forking_log, indent=4)
+    with open('temporary/longest_chain.json', 'w') as longest_chain:
+        json.dump({'chain': {}, 'from': 'Miner_1'}, longest_chain, indent=4)
     while True:
         output.choose_functionality()
         global blockchainFunction
@@ -100,10 +101,10 @@ def initiate_miners():
     miner_wallets_log_py = {}
     if blockchainPlacement == 1:
         for i in range(NumOfFogNodes):
-            the_miners_list.append(miner.Miner(i + 1, trans_delay))
+            the_miners_list.append(miner.Miner(i + 1, trans_delay, gossip_activated))
     if blockchainPlacement == 2:
         for i in range(NumOfMiners):
-            the_miners_list.append(miner.Miner(i + 1, trans_delay))
+            the_miners_list.append(miner.Miner(i + 1, trans_delay, gossip_activated))
     for entity in the_miners_list:
         with open(str("temporary/" + entity.address + "_local_chain.json"), "w") as f:
             json.dump({}, f)

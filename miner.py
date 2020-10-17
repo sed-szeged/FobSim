@@ -10,13 +10,14 @@ from multiprocessing import Process
 
 
 class Miner:
-    def __init__(self, address, trans_delay):
+    def __init__(self, address, trans_delay, gossiping):
         self.address = "Miner_" + str(address)
         self.top_block = {}
         self.isAuthorized = False
         self.next_pos_block_from = self.address
         self.neighbours = set()
         self.trans_delay = trans_delay/1000
+        self.gossiping = gossiping
 
     def build_block(self, num_of_tx_per_block, mempool, miner_list, type_of_consensus, blockchain_function, discarded_txs, expected_chain_length):
         if type_of_consensus == 3 and not self.isAuthorized:
@@ -28,7 +29,8 @@ class Miner:
                 if blockchain_function == 3:
                     transactions = self.validate_transactions(transactions, "generator")
                 if type_of_consensus == 1:
-                    # self.gossip(blockchain_function, miner_list)
+                    if self.gossiping:
+                        self.gossip(blockchain_function, miner_list)
                     new_block = consensus.pow_mining(blockchain.generate_new_block(transactions, self.address, self.top_block['hash']))
                 if type_of_consensus == 2 or (type_of_consensus == 3 and self.isAuthorized):
                     new_block = blockchain.generate_new_block(transactions, self.address, self.top_block['hash'])
@@ -49,8 +51,10 @@ class Miner:
         # print("a new block is received from " + str(new_block['generator_id']))
         condition_1 = (len(local_chain_temporary_file) == 0) and (new_block['generator_id'] == 'The Network')
         if condition_1:
-            self.add(new_block, blockchain_function, expected_chain_length)
+            self.add(new_block, blockchain_function, expected_chain_length, miner_list)
         else:
+            if self.gossiping:
+                self.gossip(blockchain_function, miner_list)
             list_of_hashes_in_local_chain = []
             for key in local_chain_temporary_file:
                 list_of_hashes_in_local_chain.append(local_chain_temporary_file[key]['hash'])
@@ -59,7 +63,7 @@ class Miner:
                 condition_3 = type_of_consensus == 2 and new_block['generator_id'] == self.next_pos_block_from
                 condition_4 = type_of_consensus == 3 and consensus.poa_block_is_valid(new_block, self.top_block['hash'], miner_list)
                 if condition_2 or condition_3 or condition_4:
-                    self.add(new_block, blockchain_function, expected_chain_length)
+                    self.add(new_block, blockchain_function, expected_chain_length, miner_list)
                     time.sleep(self.trans_delay)
                     for elem in miner_list:
                         if elem.address in self.neighbours:
@@ -108,7 +112,7 @@ class Miner:
                     time.sleep(0.1)
             return True
 
-    def add(self, block, blockchain_function, expected_chain_length):
+    def add(self, block, blockchain_function, expected_chain_length, list_of_miners):
         ready = False
         while True:
             try:
@@ -139,69 +143,104 @@ class Miner:
                         break
                 except:
                     time.sleep(0.1)
+            if self.gossiping:
+                self.update_global_longest_chain(local_chain_temporary_file, blockchain_function, list_of_miners)
 
     def gossip(self, blockchain_function, list_of_miners):
         while True:
             try:
                 with open(str("temporary/" + self.address + "_local_chain.json"), "r") as f:
                     local_chain_temporary_file = json.load(f)
-                    break
+                break
             except:
                 time.sleep(0.01)
-        confirmed_chain = local_chain_temporary_file
-        lengths_of_confirmed_chains = {str(hashing(local_chain_temporary_file)): [local_chain_temporary_file, len(local_chain_temporary_file), self.address, 1]}
-        confirmed_chain_from = self.address
-        local_chain_is_updated = False
-        for miner in list_of_miners:
-            key_exist = False
-            while True:
-                try:
-                    with open(str("temporary/" + miner.address + "_local_chain.json"), "r") as f:
-                        local_chain_temp_file = json.load(f)
-                        break
-                except:
-                    time.sleep(0.02)
-            for key in lengths_of_confirmed_chains:
-                if key == str(hashing(local_chain_temp_file)):
-                    lengths_of_confirmed_chains[key][3] += 1
-                    key_exist = True
-                    break
-            if not key_exist:
-                lengths_of_confirmed_chains[str(hashing(local_chain_temp_file))] = [local_chain_temp_file, len(local_chain_temp_file), miner.address, 1]
-        length_of_longest_chain = len(confirmed_chain)
-        for key in lengths_of_confirmed_chains:
-            if lengths_of_confirmed_chains[key][1] > length_of_longest_chain:
-                local_chain_is_updated = True
-                confirmed_chain = lengths_of_confirmed_chains[key][0]
-                length_of_longest_chain = lengths_of_confirmed_chains[key][1]
-                confirmed_chain_from = lengths_of_confirmed_chains[key][2]
+        while True:
+            try:
+                with open('temporary/longest_chain.json', 'r') as longest_chain:
+                    temporary_global_longest_chain = json.load(longest_chain)
                 break
-        if local_chain_is_updated and confirmed_chain_from != self.address:
-            while True:
-                try:
-                    with open(str("temporary/forking_log.json"), "w") as forking_log:
-                        forking_log_temp = json.load(forking_log)
-                        forking_log_temp["Number of times a fork appeared"] += 1
-                        json.dump(forking_log_temp, forking_log, indent=4)
-                        break
-                except:
-                    time.sleep(0.1)
+            except:
+                time.sleep(0.01)
+        condition_1 = len(temporary_global_longest_chain['chain']) > len(local_chain_temporary_file)
+        condition_2 = self.global_chain_is_confirmed_by_majority(temporary_global_longest_chain['chain'], len(list_of_miners))
+        if condition_1 and condition_2:
+            confirmed_chain = temporary_global_longest_chain['chain']
+            confirmed_chain_from = temporary_global_longest_chain['from']
             while True:
                 try:
                     os.remove(str("temporary/" + self.address + "_local_chain.json"))
+                    break
+                except:
+                    time.sleep(0.03)
+            while True:
+                try:
                     with open(str("temporary/" + self.address + "_local_chain.json"), "w") as m:
                         json.dump(confirmed_chain, m, indent=4)
-                    if blockchain_function == 3:
+                    break
+                except:
+                    time.sleep(0.01)
+            self.top_block = confirmed_chain[str(len(confirmed_chain) - 1)]
+            output.local_chain_is_updated(self.address, len(confirmed_chain))
+            if blockchain_function == 3:
+                while True:
+                    try:
                         with open(str("temporary/" + confirmed_chain_from + "_users_wallets.json"), "r") as t:
                             user_wallets_temp_file = json.load(t)
+                        break
+                    except:
+                        time.sleep(0.003)
+                while True:
+                    try:
                         os.remove(str("temporary/" + self.address + "_users_wallets.json"))
                         with open(str("temporary/" + self.address + "_users_wallets.json"), "w") as n:
                             json.dump(user_wallets_temp_file, n, indent=4)
+                        break
+                    except:
+                        time.sleep(0.01)
+
+    def global_chain_is_confirmed_by_majority(self, global_chain, no_of_miners):
+        chain_is_confirmed = True
+        while True:
+            try:
+                with open('temporary/confirmation_log.json', 'r') as confirmation_log:
+                    temporary_confirmations_log = json.load(confirmation_log)
+                break
+            except:
+                time.sleep(0.01)
+        for block in global_chain:
+            condition_0 = block != '0'
+            if condition_0:
+                condition_1 = not (global_chain[block]['hash'] in temporary_confirmations_log)
+                if condition_1:
+                    chain_is_confirmed = False
+                else:
+                    condition_2 = temporary_confirmations_log[global_chain[block]['hash']]['votes'] <= (no_of_miners / 2)
+                    if condition_2:
+                        chain_is_confirmed = False
+        return chain_is_confirmed
+
+    def update_global_longest_chain(self, local_chain_temporary_file, blockchain_function, list_of_miners):
+        while True:
+            try:
+                with open('temporary/longest_chain.json', 'r') as longest_chain:
+                    temporary_global_longest_chain = json.load(longest_chain)
+                break
+            except:
+                time.sleep(0.01)
+        if len(temporary_global_longest_chain['chain']) < len(local_chain_temporary_file):
+            temporary_global_longest_chain['chain'] = local_chain_temporary_file
+            temporary_global_longest_chain['from'] = self.address
+            while True:
+                try:
+                    os.remove('temporary/longest_chain.json')
+                    with open('temporary/longest_chain.json', 'w') as new_longest_chain:
+                        json.dump(temporary_global_longest_chain, new_longest_chain, indent=4)
                     break
                 except:
-                    time.sleep(0.1)
-            self.top_block = confirmed_chain[str(len(confirmed_chain)-1)]
-            output.local_chain_is_updated(self.address, len(confirmed_chain))
+                    time.sleep(0.02)
+        else:
+            if len(temporary_global_longest_chain['chain']) > len(local_chain_temporary_file) and self.gossiping:
+                self.gossip(blockchain_function, list_of_miners)
 
 
 def hashing(dictionary):
