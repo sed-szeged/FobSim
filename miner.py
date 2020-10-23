@@ -213,10 +213,12 @@ class Miner:
                 condition_1 = not (global_chain[block]['hash'] in temporary_confirmations_log)
                 if condition_1:
                     chain_is_confirmed = False
+                    break
                 else:
                     condition_2 = temporary_confirmations_log[global_chain[block]['hash']]['votes'] <= (no_of_miners / 2)
                     if condition_2:
                         chain_is_confirmed = False
+                        break
         return chain_is_confirmed
 
     def update_global_longest_chain(self, local_chain_temporary_file, blockchain_function, list_of_miners):

@@ -1,14 +1,14 @@
 {
-  "NumOfFogNodes": 2,
-  "num_of_users_per_fog_node": 2,
-  "NumOfTaskPerUser": 2,
-  "NumOfMiners": 5,
+  "NumOfFogNodes": 5,
+  "num_of_users_per_fog_node": 5,
+  "NumOfTaskPerUser": 5,
+  "NumOfMiners": 100,
   "number_of_each_miner_neighbours": 2,
-  "numOfTXperBlock": 1,
-  "puzzle_difficulty": 15,
+  "numOfTXperBlock": 5,
+  "puzzle_difficulty": 20,
   "Max_enduser_payment": 100,
   "miners_initial_wallet_value": 100,
   "mining_award": 5,
-  "delay_between_neighbors(ms)": 0,
+  "delay_between_neighbors(ms)": 25,
   "Gossip_Activated": false
 }
