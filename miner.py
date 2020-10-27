@@ -128,7 +128,7 @@ class Miner:
             condition = blockchain_function == 3 and self.validate_transactions(block['transactions'], "receiver")
             if blockchain_function != 3 or condition:
                 if block['previous_hash'] == self.top_block['hash']:
-                    blockchain.report_a_successful_block_addition(block['generator_id'], block['hash'], expected_chain_length)
+                    blockchain.report_a_successful_block_addition(block['generator_id'], block['hash'])
                     # output.block_success_addition(self.address, block['generator_id'])
                     ready = True
         if ready:
