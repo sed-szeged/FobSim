@@ -1,12 +1,9 @@
 import blockchain
 import consensus
 import json
-import os
 import time
 import output
 import hashlib
-from random import randrange
-from multiprocessing import Process
 
 
 class Miner:
@@ -104,7 +101,6 @@ class Miner:
         if miner_role == "receiver":
             while True:
                 try:
-                    os.remove(str("temporary/" + self.address + "_users_wallets.json"))
                     with open(str("temporary/" + self.address + "_users_wallets.json"), "w") as f:
                         json.dump(user_wallets_temporary_file, f, indent=4)
                         break
@@ -128,7 +124,7 @@ class Miner:
             condition = blockchain_function == 3 and self.validate_transactions(block['transactions'], "receiver")
             if blockchain_function != 3 or condition:
                 if block['previous_hash'] == self.top_block['hash']:
-                    blockchain.report_a_successful_block_addition(block['generator_id'], block['hash'], expected_chain_length)
+                    blockchain.report_a_successful_block_addition(block['generator_id'], block['hash'])
                     # output.block_success_addition(self.address, block['generator_id'])
                     ready = True
         if ready:
@@ -137,7 +133,6 @@ class Miner:
             local_chain_temporary_file[str(len(local_chain_temporary_file))] = block
             while True:
                 try:
-                    os.remove(str("temporary/" + self.address + "_local_chain.json"))
                     with open(str("temporary/" + self.address + "_local_chain.json"), "w") as f:
                         json.dump(local_chain_temporary_file, f, indent=4)
                         break
@@ -168,12 +163,6 @@ class Miner:
             confirmed_chain_from = temporary_global_longest_chain['from']
             while True:
                 try:
-                    os.remove(str("temporary/" + self.address + "_local_chain.json"))
-                    break
-                except:
-                    time.sleep(0.03)
-            while True:
-                try:
                     with open(str("temporary/" + self.address + "_local_chain.json"), "w") as m:
                         json.dump(confirmed_chain, m, indent=4)
                     break
@@ -186,17 +175,11 @@ class Miner:
                     try:
                         with open(str("temporary/" + confirmed_chain_from + "_users_wallets.json"), "r") as t:
                             user_wallets_temp_file = json.load(t)
-                        break
-                    except:
-                        time.sleep(0.003)
-                while True:
-                    try:
-                        os.remove(str("temporary/" + self.address + "_users_wallets.json"))
                         with open(str("temporary/" + self.address + "_users_wallets.json"), "w") as n:
                             json.dump(user_wallets_temp_file, n, indent=4)
                         break
                     except:
-                        time.sleep(0.01)
+                        time.sleep(0.003)
 
     def global_chain_is_confirmed_by_majority(self, global_chain, no_of_miners):
         chain_is_confirmed = True
@@ -234,7 +217,6 @@ class Miner:
             temporary_global_longest_chain['from'] = self.address
             while True:
                 try:
-                    os.remove('temporary/longest_chain.json')
                     with open('temporary/longest_chain.json', 'w') as new_longest_chain:
                         json.dump(temporary_global_longest_chain, new_longest_chain, indent=4)
                     break
@@ -263,8 +245,7 @@ def accumulate_transactions(num_of_tx_per_block, mempool, blockchain_function, m
                                         + str(lst_of_transactions[3]), "miner: " + str(miner_address)]
                 return produced_transaction
             except:
-                print("error in accumulating new TXs")
-
+                print("error in accumulating new TXs:")
     else:
         for i in range(num_of_tx_per_block):
             if mempool.qsize() > 0:

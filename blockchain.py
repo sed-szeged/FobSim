@@ -1,6 +1,5 @@
 import hashlib
 import json
-import os
 import random
 import time
 import output
@@ -33,14 +32,15 @@ def hashing_function(nonce, transactions, generator_id, previous_hash):
     return h.hexdigest()
 
 
-def report_a_successful_block_addition(winning_miner, hash_of_added_block, expected_chain_length):
+def report_a_successful_block_addition(winning_miner, hash_of_added_block):
     record_exist = False
     while True:
         try:
             with open("temporary/confirmation_log.json", 'r') as f:
                 temporary_confirmation_log = json.load(f)
                 break
-        except:
+        except Exception as e:
+            print(e)
             time.sleep(0.1)
     for key in temporary_confirmation_log:
         if key == hash_of_added_block and winning_miner == temporary_confirmation_log[key]['winning_miner']:
@@ -51,16 +51,16 @@ def report_a_successful_block_addition(winning_miner, hash_of_added_block, expec
         temporary_confirmation_log[str(hash_of_added_block)] = {'winning_miner': winning_miner, 'votes': 1}
     while True:
         try:
-            os.remove(str("temporary/confirmation_log.json"))
-            with open(str("temporary/confirmation_log.json"), "w") as f:
+            with open("temporary/confirmation_log.json", "w") as f:
                 json.dump(temporary_confirmation_log, f, indent=4)
                 break
-        except:
+        except Exception as e:
+            print(e)
             time.sleep(0.1)
 
 
 def award_winning_miners(num_of_miners):
-    with open(str("temporary/confirmation_log.json"), 'r') as f:
+    with open("temporary/confirmation_log.json", 'r') as f:
         final_confirmation_log = json.load(f)
     with open("temporary/miner_wallets_log.json", 'r') as miner_final_wallets_log:
         miner_final_wallets_log_py = json.load(miner_final_wallets_log)
@@ -69,7 +69,7 @@ def award_winning_miners(num_of_miners):
             for key1 in miner_final_wallets_log_py:
                 if key1 == final_confirmation_log[key]['winning_miner']:
                     miner_final_wallets_log_py[key1] += mining_award
-    with open(str("temporary/miner_wallets_log.json"), "w") as f:
+    with open("temporary/miner_wallets_log.json", "w") as f:
         json.dump(miner_final_wallets_log_py, f, indent=4)
 
 
@@ -82,8 +82,6 @@ def stake(list_of_miners, num_of_consensus):
                     temp_miners_stake_amounts_py = json.load(y)
                     temp_miners_stake_amounts_py[miner.address] = random.randint(0, temp_miner_wallets_log_py[miner.address])
                     temp_miner_wallets_log_py[miner.address] -= temp_miners_stake_amounts_py[miner.address]
-            os.remove('temporary/miner_wallets_log.json')
-            os.remove('temporary/miners_stake_amounts.json')
             with open('temporary/miner_wallets_log.json', "w") as f:
                 json.dump(temp_miner_wallets_log_py, f, indent=4)
             with open('temporary/miners_stake_amounts.json', "w") as f:
@@ -105,4 +103,3 @@ def fork_analysis(list_of_miners):
     output.fork_analysis(len(chain_versions))
     with open('temporary/forking_log.json', 'w') as forking_log:
         json.dump({"Number of times a fork appeared": len(chain_versions) - 1}, forking_log, indent=4)
-
