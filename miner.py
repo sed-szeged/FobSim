@@ -4,6 +4,7 @@ import json
 import time
 import output
 import hashlib
+import modification
 
 
 class Miner:
@@ -38,13 +39,7 @@ class Miner:
                         elem.receive_new_block(new_block, type_of_consensus, miner_list, blockchain_function, discarded_txs, expected_chain_length)
 
     def receive_new_block(self, new_block, type_of_consensus, miner_list, blockchain_function, discarded_txs, expected_chain_length):
-        while True:
-            try:
-                with open(str("temporary/" + self.address + "_local_chain.json"), 'r') as f:
-                    local_chain_temporary_file = json.load(f)
-                    break
-            except:
-                time.sleep(0.3)
+        local_chain_temporary_file = modification.read_file(str("temporary/" + self.address + "_local_chain.json"))
         # print("a new block is received from " + str(new_block['generator_id']))
         condition_1 = (len(local_chain_temporary_file) == 0) and (new_block['generator_id'] == 'The Network')
         if condition_1:
@@ -74,13 +69,7 @@ class Miner:
             #     output.block_discarded()
 
     def validate_transactions(self, list_of_new_transactions, miner_role):
-        while True:
-            try:
-                with open(str("temporary/" + self.address + "_users_wallets.json"), "r") as user_wallets_external_file:
-                    user_wallets_temporary_file = json.load(user_wallets_external_file)
-                    break
-            except:
-                time.sleep(0.1)
+        user_wallets_temporary_file = modification.read_file(str("temporary/" + self.address + "_users_wallets.json"))
         if list_of_new_transactions:
             for key in user_wallets_temporary_file:
                 for transaction in list_of_new_transactions:
@@ -99,13 +88,7 @@ class Miner:
         if miner_role == "generator":
             return list_of_new_transactions
         if miner_role == "receiver":
-            while True:
-                try:
-                    with open(str("temporary/" + self.address + "_users_wallets.json"), "w") as f:
-                        json.dump(user_wallets_temporary_file, f, indent=4)
-                        break
-                except:
-                    time.sleep(0.1)
+            modification.rewrite_file(str("temporary/" + self.address + "_users_wallets.json"), user_wallets_temporary_file)
             return True
 
     def add(self, block, blockchain_function, expected_chain_length, list_of_miners):
@@ -131,65 +114,28 @@ class Miner:
             block['blockNo'] = len(local_chain_temporary_file)
             self.top_block = block
             local_chain_temporary_file[str(len(local_chain_temporary_file))] = block
-            while True:
-                try:
-                    with open(str("temporary/" + self.address + "_local_chain.json"), "w") as f:
-                        json.dump(local_chain_temporary_file, f, indent=4)
-                        break
-                except:
-                    time.sleep(0.1)
+            modification.rewrite_file(str("temporary/" + self.address + "_local_chain.json"), local_chain_temporary_file)
             if self.gossiping:
                 self.update_global_longest_chain(local_chain_temporary_file, blockchain_function, list_of_miners)
 
     def gossip(self, blockchain_function, list_of_miners):
-        while True:
-            try:
-                with open(str("temporary/" + self.address + "_local_chain.json"), "r") as f:
-                    local_chain_temporary_file = json.load(f)
-                break
-            except:
-                time.sleep(0.01)
-        while True:
-            try:
-                with open('temporary/longest_chain.json', 'r') as longest_chain:
-                    temporary_global_longest_chain = json.load(longest_chain)
-                break
-            except:
-                time.sleep(0.01)
+        local_chain_temporary_file = modification.read_file(str("temporary/" + self.address + "_local_chain.json"))
+        temporary_global_longest_chain = modification.read_file('temporary/longest_chain.json')
         condition_1 = len(temporary_global_longest_chain['chain']) > len(local_chain_temporary_file)
         condition_2 = self.global_chain_is_confirmed_by_majority(temporary_global_longest_chain['chain'], len(list_of_miners))
         if condition_1 and condition_2:
             confirmed_chain = temporary_global_longest_chain['chain']
             confirmed_chain_from = temporary_global_longest_chain['from']
-            while True:
-                try:
-                    with open(str("temporary/" + self.address + "_local_chain.json"), "w") as m:
-                        json.dump(confirmed_chain, m, indent=4)
-                    break
-                except:
-                    time.sleep(0.01)
+            modification.rewrite_file(str("temporary/" + self.address + "_local_chain.json"), confirmed_chain)
             self.top_block = confirmed_chain[str(len(confirmed_chain) - 1)]
             output.local_chain_is_updated(self.address, len(confirmed_chain))
             if blockchain_function == 3:
-                while True:
-                    try:
-                        with open(str("temporary/" + confirmed_chain_from + "_users_wallets.json"), "r") as t:
-                            user_wallets_temp_file = json.load(t)
-                        with open(str("temporary/" + self.address + "_users_wallets.json"), "w") as n:
-                            json.dump(user_wallets_temp_file, n, indent=4)
-                        break
-                    except:
-                        time.sleep(0.003)
+                user_wallets_temp_file = modification.read_file(str("temporary/" + confirmed_chain_from + "_users_wallets.json"))
+                modification.rewrite_file(str("temporary/" + self.address + "_users_wallets.json"), user_wallets_temp_file)
 
     def global_chain_is_confirmed_by_majority(self, global_chain, no_of_miners):
         chain_is_confirmed = True
-        while True:
-            try:
-                with open('temporary/confirmation_log.json', 'r') as confirmation_log:
-                    temporary_confirmations_log = json.load(confirmation_log)
-                break
-            except:
-                time.sleep(0.01)
+        temporary_confirmations_log = modification.read_file('temporary/confirmation_log.json')
         for block in global_chain:
             condition_0 = block != '0'
             if condition_0:
@@ -205,23 +151,11 @@ class Miner:
         return chain_is_confirmed
 
     def update_global_longest_chain(self, local_chain_temporary_file, blockchain_function, list_of_miners):
-        while True:
-            try:
-                with open('temporary/longest_chain.json', 'r') as longest_chain:
-                    temporary_global_longest_chain = json.load(longest_chain)
-                break
-            except:
-                time.sleep(0.01)
+        temporary_global_longest_chain = modification.read_file('temporary/longest_chain.json')
         if len(temporary_global_longest_chain['chain']) < len(local_chain_temporary_file):
             temporary_global_longest_chain['chain'] = local_chain_temporary_file
             temporary_global_longest_chain['from'] = self.address
-            while True:
-                try:
-                    with open('temporary/longest_chain.json', 'w') as new_longest_chain:
-                        json.dump(temporary_global_longest_chain, new_longest_chain, indent=4)
-                    break
-                except:
-                    time.sleep(0.02)
+            modification.rewrite_file('temporary/longest_chain.json', temporary_global_longest_chain)
         else:
             if len(temporary_global_longest_chain['chain']) > len(local_chain_temporary_file) and self.gossiping:
                 self.gossip(blockchain_function, list_of_miners)

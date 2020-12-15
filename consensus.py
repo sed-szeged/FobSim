@@ -14,8 +14,7 @@ def choose_consensus():
         if num_of_consensus in blockchain_CAs:
             num_of_consensus = int(num_of_consensus)
             if num_of_consensus == 2:
-                with open('temporary/miners_stake_amounts.json', 'w') as file:
-                    json.dump({}, file, indent=4)
+                modification.write_file('temporary/miners_stake_amounts.json', {})
             break
         else:
             print("Input is incorrect, try again..!")

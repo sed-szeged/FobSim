@@ -2,10 +2,9 @@ import random
 from random import randrange
 import json
 import output
+import modification
 
-with open("Sim_parameters.json") as json_file:
-    data = json.load(json_file)
-
+data = modification.read_file("Sim_parameters.json")
 
 class User:
     def __init__(self, address, parent):

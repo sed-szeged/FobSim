@@ -5,17 +5,16 @@ import miner
 import blockchain
 import consensus
 import random
-import json
 import os
 import shutil
 import mempool
 import output
 from math import ceil
+import time
+import modification
 
 
-with open("Sim_parameters.json") as json_file:
-    data = json.load(json_file)
-
+data = modification.read_file("Sim_parameters.json")
 list_of_end_users = []
 fogNodes = []
 transactions_list = []
@@ -32,14 +31,16 @@ num_of_users_per_fog_node = data["num_of_users_per_fog_node"]
 blockchain_functions = ['1', '2', '3', '4']
 blockchain_placement_options = ['1', '2']
 expected_chain_length = ceil((num_of_users_per_fog_node * NumOfTaskPerUser * NumOfFogNodes) / numOfTXperBlock)
-trans_delay = data["delay_between_neighbors(ms)"]
 gossip_activated = data["Gossip_Activated"]
 Automatic_PoA_miners_authorization = data["Automatic_PoA_miners_authorization?"]
 Parallel_PoW_mining = data["Parallel_PoW_mining?"]
+trans_delay = 0
+delay_between_fog_nodes = data["delay_between_fog_nodes"]
+delay_between_end_users = data["delay_between_end_users"]
 
 
 def user_input():
-    initiate_files()
+    modification.initiate_files(gossip_activated)
     choose_functionality()
     choose_placement()
 
@@ -68,25 +69,6 @@ def choose_placement():
             print("Input is incorrect, try again..!")
 
 
-def initiate_files():
-    for filename in os.listdir('temporary'):
-        file_path = os.path.join('temporary', filename)
-        try:
-            if os.path.isfile(file_path) or os.path.islink(file_path):
-                os.unlink(file_path)
-            elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)
-        except Exception as e:
-            print('Failed to delete %s. Reason: %s' % (file_path, e))
-    with open('temporary/confirmation_log.json', 'w') as awards_log:
-        json.dump({}, awards_log, indent=4)
-    with open('temporary/miner_wallets_log.json', 'w') as miner_wallets_log:
-        json.dump({}, miner_wallets_log, indent=4)
-    if gossip_activated:
-        with open('temporary/longest_chain.json', 'w') as longest_chain:
-            json.dump({'chain': {}, 'from': 'Miner_1'}, longest_chain, indent=4)
-
-
 def initiate_network():
     for count in range(NumOfFogNodes):
         fogNodes.append(Fog.Fog(count + 1))
@@ -112,7 +94,7 @@ def initiate_network():
 
 def initiate_miners():
     the_miners_list = []
-    miner_wallets_log_py = {}
+
     if blockchainPlacement == 1:
         for i in range(NumOfFogNodes):
             the_miners_list.append(miner.Miner(i + 1, trans_delay, gossip_activated))
@@ -120,14 +102,22 @@ def initiate_miners():
         for i in range(NumOfMiners):
             the_miners_list.append(miner.Miner(i + 1, trans_delay, gossip_activated))
     for entity in the_miners_list:
-        with open(str("temporary/" + entity.address + "_local_chain.json"), "w") as f:
-            json.dump({}, f)
-        with open("temporary/miner_wallets_log.json", 'w') as miner_wallets_log:
-            miner_wallets_log_py[str(entity.address)] = data['miners_initial_wallet_value']
-            json.dump(miner_wallets_log_py, miner_wallets_log, indent=4)
+        modification.write_file("temporary/" + entity.address + "_local_chain.json", {})
+        miner_wallets_log_py = modification.read_file("temporary/miner_wallets_log.json")
+        miner_wallets_log_py[str(entity.address)] = data['miners_initial_wallet_value']
+        modification.rewrite_file("temporary/miner_wallets_log.json", miner_wallets_log_py)
     connect_miners(the_miners_list)
     output.miners_are_up()
     return the_miners_list
+
+
+def define_trans_delay(layer):
+    transmission_delay = 0
+    if layer == 1:
+        transmission_delay = delay_between_fog_nodes
+    if layer == 2:
+        transmission_delay = delay_between_end_users
+    return transmission_delay
 
 
 def connect_miners(miners_list):
@@ -249,17 +239,16 @@ def trigger_pos_miners(the_miners_list, the_type_of_consensus):
             randomly_chosen_miners.append(random.choice(the_miners_list))
         biggest_stake = 0
         final_chosen_miner = the_miners_list[0]
-        with open('temporary/miners_stake_amounts.json', 'r') as temp_file:
-            temp_file_py = json.load(temp_file)
-            for chosen_miner in randomly_chosen_miners:
-                if temp_file_py[chosen_miner.address] > biggest_stake:
-                    biggest_stake = temp_file_py[chosen_miner.address]
-                    final_chosen_miner = chosen_miner
-            for entity in the_miners_list:
-                entity.next_pos_block_from = final_chosen_miner.address
-            if mempool.MemPool.qsize() != 0:
-                final_chosen_miner.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus,
-                                               blockchainFunction, mempool.discarded_txs, expected_chain_length)
+        temp_file_py = modification.read_file('temporary/miners_stake_amounts.json')
+        for chosen_miner in randomly_chosen_miners:
+            if temp_file_py[chosen_miner.address] > biggest_stake:
+                biggest_stake = temp_file_py[chosen_miner.address]
+                final_chosen_miner = chosen_miner
+        for entity in the_miners_list:
+            entity.next_pos_block_from = final_chosen_miner.address
+        if mempool.MemPool.qsize() != 0:
+            final_chosen_miner.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus,
+                                           blockchainFunction, mempool.discarded_txs, expected_chain_length)
         output.simulation_progress(counter, expected_chain_length)
 
 
@@ -281,21 +270,24 @@ def inform_miners_of_users_wallets():
                            'wallet_value': user.wallet}
             user_wallets[str(user.addressParent) + '.' + str(user.addressSelf)] = wallet_info
         for i in range(len(miner_list)):
-            with open(str("temporary/" + miner_list[i].address + "_users_wallets.json"), "w") as f:
-                json.dump(user_wallets, f, indent=4)
+            modification.rewrite_file(str("temporary/" + miner_list[i].address + "_users_wallets.json"), user_wallets)
 
 
 if __name__ == '__main__':
     user_input()
     initiate_network()
     type_of_consensus = consensus.choose_consensus()
+    trans_delay = define_trans_delay(blockchainPlacement)
     miner_list = initiate_miners()
     give_miners_authorization(miner_list, type_of_consensus)
     inform_miners_of_users_wallets()
     blockchain.stake(miner_list, type_of_consensus)
     initiate_genesis_block()
     send_tasks_to_BC()
+    time_start = time.time()
     miners_trigger(miner_list, type_of_consensus)
     blockchain.award_winning_miners(len(miner_list))
     blockchain.fork_analysis(miner_list)
     output.finish()
+    elapsed_time = time.time() - time_start
+    print("elapsed time = " + str(elapsed_time) + " seconds")
