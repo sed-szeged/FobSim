@@ -12,6 +12,8 @@ https://www.techrxiv.org/articles/preprint/FoBSim_An_extensible_open-source_simu
 
 DOI: https://doi.org/10.36227/techrxiv.13148390.v1
 
+IMPORTANT NOTE: Published code should be considered copyrighted whether or not it includes an explicit copyright notice. This means that no one can distribute, reproduce, display, or create derivative works of the software without permission of the copyright owner.
+
 *The components implemented in FoBSim contains:
 
 1- Fog layer implementation.
