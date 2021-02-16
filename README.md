@@ -6,7 +6,7 @@ This environment shall facilitate easy simulation for different Fog-Blockchain i
 
 FoBSim is implemented using Python 3.8, and it is adviced to be run on Linux or Windows OS. 
 
-This research work is a part of a paper that is currently being reviewed for probable publication in the PeerJ-Computer Science. The paper can be found as a preprint at:
+This research work is a part of a paper that is ACCEPTED for publication in the PeerJ-Computer Science. The first version of the paper can be found as a preprint at:
 
 https://www.techrxiv.org/articles/preprint/FoBSim_An_extensible_open-source_simulation_tool_for_integrated_Fog-Blockchain_systems/13148390
 
