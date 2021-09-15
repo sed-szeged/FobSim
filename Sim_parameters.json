@@ -1,4 +1,7 @@
 {
+  "blockchainFunction": "1",
+  "blockchainPlacement": "1",
+  "num_of_consensus": "1",
   "NumOfFogNodes": 5,
   "num_of_users_per_fog_node": 2,
   "NumOfTaskPerUser": 1,
