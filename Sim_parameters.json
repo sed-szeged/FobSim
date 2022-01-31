@@ -2,7 +2,7 @@
   "NumOfFogNodes": 10,
   "num_of_users_per_fog_node": 10,
   "NumOfTaskPerUser": 1,
-  "NumOfMiners": 5,
+  "NumOfMiners": 10,
   "number_of_each_miner_neighbours": 2,
   "numOfTXperBlock": 5,
   "puzzle_difficulty": 5,
