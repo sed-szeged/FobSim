@@ -43,7 +43,10 @@ def rewrite_file(file_path, new_version):
     random_waiting_time = random.randint(1, 10)/100
     while True:
         try:
-            os.remove(file_path)
+            try:
+                os.remove(file_path)
+            except Exception as problem_with_file:
+                pass
             with open(file_path, "w") as f:
                 json.dump(new_version, f, indent=4)
             break
