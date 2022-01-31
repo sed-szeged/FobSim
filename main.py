@@ -290,7 +290,7 @@ def inform_miners_of_users_wallets():
 if __name__ == '__main__':
     user_input()
     initiate_network()
-    type_of_consensus = consensus.choose_consensus(data)
+    type_of_consensus = consensus.choose_consensus()
     trans_delay = define_trans_delay(blockchainPlacement)
     miner_list = initiate_miners()
     give_miners_authorization(miner_list, type_of_consensus)
