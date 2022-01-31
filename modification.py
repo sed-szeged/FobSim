@@ -29,7 +29,7 @@ def read_file(file_path):
                 file = json.load(f)
                 break
         except Exception as e:
-            # print(e)
+            print(e)
             time.sleep(random_waiting_time)
     return file
 
@@ -48,5 +48,5 @@ def rewrite_file(file_path, new_version):
                 json.dump(new_version, f, indent=4)
             break
         except Exception as e:
-            # print(e)
+            print(e)
             time.sleep(random_waiting_time)
