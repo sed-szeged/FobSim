@@ -22,15 +22,16 @@ def initiate_files(gossip_activated):
 
 
 def read_file(file_path):
-    random_waiting_time = random.randint(1, 10) / 100
+    # random_waiting_time = random.randint(1, 10) / 100
     while True:
         try:
             with open(file_path, 'r') as f:
                 file = json.load(f)
                 break
         except Exception as e:
+            pass
             # print(e)
-            time.sleep(random_waiting_time)
+            # time.sleep(random_waiting_time)
     return file
 
 
@@ -51,5 +52,6 @@ def rewrite_file(file_path, new_version):
                 json.dump(new_version, f, indent=4)
             break
         except Exception as e:
+            pass
             # print(e)
-            time.sleep(random_waiting_time)
+            # time.sleep(random_waiting_time)
