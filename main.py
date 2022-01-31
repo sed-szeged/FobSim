@@ -5,8 +5,6 @@ import miner
 import blockchain
 import consensus
 import random
-import os
-import shutil
 import mempool
 import output
 from math import ceil
@@ -46,41 +44,27 @@ def user_input():
 
 
 def choose_functionality():
-	global blockchainFunction
-	if "blockchainFunction" in data and data["blockchainFunction"] in blockchain_functions:
-		blockchainFunction = int(data["blockchainFunction"])
-		print("The function of the Blockchain network:\n", blockchainFunction,
-          "\n(1) Data Management\n"
-          "(2) Computational services\n"
-          "(3) Payment\n"
-          "(4) Identity Management\n")
-	else:
-		while True:
-			output.choose_functionality()
-			blockchainFunction = input()
-			if blockchainFunction in blockchain_functions:
-				blockchainFunction = int(blockchainFunction)
-				break
-			else:
-				print("Input is incorrect, try again..!")
+    while True:
+        output.choose_functionality()
+        global blockchainFunction
+        blockchainFunction = input()
+        if blockchainFunction in blockchain_functions:
+            blockchainFunction = int(blockchainFunction)
+            break
+        else:
+            print("Input is incorrect, try again..!")
 
 
 def choose_placement():
-	global blockchainPlacement
-	if "blockchainPlacement" in data and data["blockchainPlacement"] in blockchain_placement_options:
-		blockchainPlacement = int(data["blockchainPlacement"])
-		print("The placement of the Blockchain network:\n", blockchainPlacement,
-          "\n(1) Fog Layer\n"
-          "(2) End-User layer\n")
-	else:
-		while True:
-			output.choose_placement()
-			blockchainPlacement = input()
-			if blockchainPlacement in blockchain_placement_options:
-				blockchainPlacement = int(blockchainPlacement)
-				break
-			else:
-				print("Input is incorrect, try again..!")
+    while True:
+        output.choose_placement()
+        global blockchainPlacement
+        blockchainPlacement = input()
+        if blockchainPlacement in blockchain_placement_options:
+            blockchainPlacement = int(blockchainPlacement)
+            break
+        else:
+            print("Input is incorrect, try again..!")
 
 
 def initiate_network():
