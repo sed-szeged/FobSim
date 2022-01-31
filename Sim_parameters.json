@@ -9,8 +9,8 @@
   "Max_enduser_payment": 100,
   "miners_initial_wallet_value": 1000,
   "mining_award": 5,
-  "delay_between_fog_nodes": 12,
-  "delay_between_end_users": 1000,
+  "delay_between_fog_nodes": 5,
+  "delay_between_end_users": 10,
   "Gossip_Activated": true,
   "Automatic_PoA_miners_authorization?": true,
   "Parallel_PoW_mining?": true
