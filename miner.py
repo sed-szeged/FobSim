@@ -1,9 +1,9 @@
 import blockchain
-import consensus
 import json
 import time
+import new_consensus_module
 import output
-import hashlib
+import encryption_module
 import modification
 
 
@@ -16,9 +16,15 @@ class Miner:
         self.neighbours = set()
         self.trans_delay = trans_delay/1000
         self.gossiping = gossiping
+        self.waiting_times = {}
 
-    def build_block(self, num_of_tx_per_block, mempool, miner_list, type_of_consensus, blockchain_function, discarded_txs, expected_chain_length):
-        if type_of_consensus == 3 and not self.isAuthorized:
+    def build_block(self, num_of_tx_per_block, mempool, miner_list, type_of_consensus, blockchain_function, expected_chain_length):
+        condition1 = type_of_consensus == 3 and not self.isAuthorized
+        condition2 = type_of_consensus == 4
+        if condition2:
+            if time.time() < (self.top_block['Body']['timestamp'] + self.waiting_times[self.top_block['Header']['blockNo'] + 1]):
+                pass
+        if condition1:
             output.unauthorized_miner_msg(self.address)
         else:
             accumulated_transactions = accumulate_transactions(num_of_tx_per_block, mempool, blockchain_function, self.address)
@@ -26,22 +32,22 @@ class Miner:
                 transactions = accumulated_transactions
                 if blockchain_function == 3:
                     transactions = self.validate_transactions(transactions, "generator")
-                if type_of_consensus == 1:
-                    if self.gossiping:
-                        self.gossip(blockchain_function, miner_list)
-                    new_block = consensus.pow_mining(blockchain.generate_new_block(transactions, self.address, self.top_block['hash']))
-                if type_of_consensus == 2 or (type_of_consensus == 3 and self.isAuthorized):
-                    new_block = blockchain.generate_new_block(transactions, self.address, self.top_block['hash'])
+                if self.gossiping:
+                    self.gossip(blockchain_function, miner_list)
+                new_block = new_consensus_module.generate_new_block(transactions, self.address, self.top_block['Header']['hash'], type_of_consensus)
+                if type_of_consensus == 4:
+                    new_block['Header']['PoET'] = encryption_module.retrieve_signature_from_saved_key(new_block['Body']['previous_hash'], self.address)
                 output.block_info(new_block, type_of_consensus)
                 time.sleep(self.trans_delay)
                 for elem in miner_list:
                     if elem.address in self.neighbours:
-                        elem.receive_new_block(new_block, type_of_consensus, miner_list, blockchain_function, discarded_txs, expected_chain_length)
+                        elem.receive_new_block(new_block, type_of_consensus, miner_list, blockchain_function, expected_chain_length)
 
-    def receive_new_block(self, new_block, type_of_consensus, miner_list, blockchain_function, discarded_txs, expected_chain_length):
+    def receive_new_block(self, new_block, type_of_consensus, miner_list, blockchain_function, expected_chain_length):
+        block_already_received = False
         local_chain_temporary_file = modification.read_file(str("temporary/" + self.address + "_local_chain.json"))
         # print("a new block is received from " + str(new_block['generator_id']))
-        condition_1 = (len(local_chain_temporary_file) == 0) and (new_block['generator_id'] == 'The Network')
+        condition_1 = (len(local_chain_temporary_file) == 0) and (new_block['Header']['generator_id'] == 'The Network')
         if condition_1:
             self.add(new_block, blockchain_function, expected_chain_length, miner_list)
         else:
@@ -49,24 +55,18 @@ class Miner:
                 self.gossip(blockchain_function, miner_list)
             list_of_hashes_in_local_chain = []
             for key in local_chain_temporary_file:
-                list_of_hashes_in_local_chain.append(local_chain_temporary_file[key]['hash'])
-            if new_block['hash'] not in list_of_hashes_in_local_chain:
-                condition_2 = type_of_consensus == 1 and consensus.pow_block_is_valid(new_block, self.top_block['hash'])
-                condition_3 = type_of_consensus == 2 and new_block['generator_id'] == self.next_pos_block_from
-                condition_4 = type_of_consensus == 3 and consensus.poa_block_is_valid(new_block, self.top_block['hash'], miner_list)
-                if condition_2 or condition_3 or condition_4:
+                read_hash = local_chain_temporary_file[key]['Header']['hash']
+                list_of_hashes_in_local_chain.append(read_hash)
+                if new_block['Header']['hash'] == read_hash:
+                    block_already_received = True
+                    break
+            if not block_already_received:
+                if new_consensus_module.block_is_valid(type_of_consensus, new_block, self.top_block, self.next_pos_block_from, miner_list):
                     self.add(new_block, blockchain_function, expected_chain_length, miner_list)
                     time.sleep(self.trans_delay)
                     for elem in miner_list:
                         if elem.address in self.neighbours:
-                            elem.receive_new_block(new_block, type_of_consensus, miner_list, blockchain_function, discarded_txs, expected_chain_length)
-                # else:
-                #     output.illegal_block()
-                #     if new_block['transactions']:
-                #         for tx in new_block['transactions']:
-                #             discarded_txs.put(tx)
-            # else:
-            #     output.block_discarded()
+                            elem.receive_new_block(new_block, type_of_consensus, miner_list, blockchain_function, expected_chain_length)
 
     def validate_transactions(self, list_of_new_transactions, miner_role):
         user_wallets_temporary_file = modification.read_file(str("temporary/" + self.address + "_users_wallets.json"))
@@ -104,14 +104,14 @@ class Miner:
         if len(local_chain_temporary_file) == 0:
             ready = True
         else:
-            condition = blockchain_function == 3 and self.validate_transactions(block['transactions'], "receiver")
+            condition = blockchain_function == 3 and self.validate_transactions(block['Body']['transactions'], "receiver")
             if blockchain_function != 3 or condition:
-                if block['previous_hash'] == self.top_block['hash']:
-                    blockchain.report_a_successful_block_addition(block['generator_id'], block['hash'])
+                if block['Body']['previous_hash'] == self.top_block['Header']['hash']:
+                    blockchain.report_a_successful_block_addition(block['Header']['generator_id'], block['Header']['hash'])
                     # output.block_success_addition(self.address, block['generator_id'])
                     ready = True
         if ready:
-            block['blockNo'] = len(local_chain_temporary_file)
+            block['Header']['blockNo'] = len(local_chain_temporary_file)
             self.top_block = block
             local_chain_temporary_file[str(len(local_chain_temporary_file))] = block
             modification.rewrite_file(str("temporary/" + self.address + "_local_chain.json"), local_chain_temporary_file)
@@ -139,12 +139,12 @@ class Miner:
         for block in global_chain:
             condition_0 = block != '0'
             if condition_0:
-                condition_1 = not (global_chain[block]['hash'] in temporary_confirmations_log)
+                condition_1 = not (global_chain[block]['Header']['hash'] in temporary_confirmations_log)
                 if condition_1:
                     chain_is_confirmed = False
                     break
                 else:
-                    condition_2 = temporary_confirmations_log[global_chain[block]['hash']]['votes'] <= (no_of_miners / 2)
+                    condition_2 = temporary_confirmations_log[global_chain[block]['Header']['hash']]['votes'] <= (no_of_miners / 2)
                     if condition_2:
                         chain_is_confirmed = False
                         break
@@ -159,12 +159,6 @@ class Miner:
         else:
             if len(temporary_global_longest_chain['chain']) > len(local_chain_temporary_file) and self.gossiping:
                 self.gossip(blockchain_function, list_of_miners)
-
-
-def hashing(dictionary):
-    h = hashlib.sha256()
-    h.update(str(dictionary).encode(encoding='UTF-8'))
-    return h.hexdigest()
 
 
 def accumulate_transactions(num_of_tx_per_block, mempool, blockchain_function, miner_address):

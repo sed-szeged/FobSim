@@ -1,22 +1,21 @@
-from multiprocessing import Process
 import Fog
+import encryption_module
 import end_user
 import miner
 import blockchain
-import consensus
 import random
 import mempool
 import output
 from math import ceil
 import time
 import modification
+import new_consensus_module
 
 
 data = modification.read_file("Sim_parameters.json")
 list_of_end_users = []
 fogNodes = []
 transactions_list = []
-mining_processes = []
 list_of_authorized_miners = []
 blockchainFunction = 0
 blockchainPlacement = 0
@@ -35,6 +34,8 @@ Parallel_PoW_mining = data["Parallel_PoW_mining?"]
 trans_delay = 0
 delay_between_fog_nodes = data["delay_between_fog_nodes"]
 delay_between_end_users = data["delay_between_end_users"]
+poet_block_time = data['poet_block_time']
+Asymmetric_key_length = data['Asymmetric_key_length']
 
 
 def user_input():
@@ -104,6 +105,7 @@ def initiate_miners():
         miner_wallets_log_py = modification.read_file("temporary/miner_wallets_log.json")
         miner_wallets_log_py[str(entity.address)] = data['miners_initial_wallet_value']
         modification.rewrite_file("temporary/miner_wallets_log.json", miner_wallets_log_py)
+    print('Miners have been initiated..')
     connect_miners(the_miners_list)
     output.miners_are_up()
     return the_miners_list
@@ -189,74 +191,16 @@ def initiate_genesis_block():
     genesis_transactions = ["genesis_block"]
     for i in range(len(miner_list)):
         genesis_transactions.append(miner_list[i].address)
-    genesis_block = blockchain.generate_new_block(genesis_transactions, 'The Network', 0)
+    genesis_block = new_consensus_module.generate_new_block(genesis_transactions, 'The Network', 0, type_of_consensus)
     output.block_info(genesis_block, type_of_consensus)
     for elem in miner_list:
-        elem.receive_new_block(genesis_block, type_of_consensus, miner_list, blockchainFunction, mempool.discarded_txs, expected_chain_length)
+        elem.receive_new_block(genesis_block, type_of_consensus, miner_list, blockchainFunction, expected_chain_length)
     output.genesis_block_generation()
 
 
 def send_tasks_to_BC():
     for node in fogNodes:
         node.send_tasks_to_BC()
-
-
-def miners_trigger(the_miners_list, the_type_of_consensus):
-    output.mempool_info(mempool.MemPool)
-    if the_type_of_consensus == 1:
-        trigger_pow_miners(the_miners_list, the_type_of_consensus)
-    if the_type_of_consensus == 2:
-        trigger_pos_miners(the_miners_list, the_type_of_consensus)
-    if the_type_of_consensus == 3:
-        trigger_poa_miners(the_miners_list, the_type_of_consensus)
-
-
-def trigger_pow_miners(the_miners_list, the_type_of_consensus):
-    for counter in range(expected_chain_length):
-        obj = random.choice(the_miners_list)
-        if Parallel_PoW_mining:
-            # parallel approach
-            process = Process(target=obj.build_block, args=(
-                numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction,
-                mempool.discarded_txs, expected_chain_length,))
-            process.start()
-            mining_processes.append(process)
-        else:
-            # non-parallel approach
-            obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction, mempool.discarded_txs, expected_chain_length)
-        output.simulation_progress(counter, expected_chain_length)
-    for process in mining_processes:
-        process.join()
-
-
-def trigger_pos_miners(the_miners_list, the_type_of_consensus):
-    for counter in range(expected_chain_length):
-        randomly_chosen_miners = []
-        x = int(round((len(the_miners_list) / 2), 0))
-        for i in range(x):
-            randomly_chosen_miners.append(random.choice(the_miners_list))
-        biggest_stake = 0
-        final_chosen_miner = the_miners_list[0]
-        temp_file_py = modification.read_file('temporary/miners_stake_amounts.json')
-        for chosen_miner in randomly_chosen_miners:
-            if temp_file_py[chosen_miner.address] > biggest_stake:
-                biggest_stake = temp_file_py[chosen_miner.address]
-                final_chosen_miner = chosen_miner
-        for entity in the_miners_list:
-            entity.next_pos_block_from = final_chosen_miner.address
-        if mempool.MemPool.qsize() != 0:
-            final_chosen_miner.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus,
-                                           blockchainFunction, mempool.discarded_txs, expected_chain_length)
-        output.simulation_progress(counter, expected_chain_length)
-
-
-def trigger_poa_miners(the_miners_list, the_type_of_consensus):
-    for counter in range(expected_chain_length):
-        for obj in miner_list:
-            if mempool.MemPool.qsize() != 0:
-                obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus,
-                                blockchainFunction, mempool.discarded_txs, expected_chain_length)
-        output.simulation_progress(counter, expected_chain_length)
 
 
 def inform_miners_of_users_wallets():
@@ -274,7 +218,7 @@ def inform_miners_of_users_wallets():
 if __name__ == '__main__':
     user_input()
     initiate_network()
-    type_of_consensus = consensus.choose_consensus()
+    type_of_consensus = new_consensus_module.choose_consensus()
     trans_delay = define_trans_delay(blockchainPlacement)
     miner_list = initiate_miners()
     give_miners_authorization(miner_list, type_of_consensus)
@@ -283,9 +227,12 @@ if __name__ == '__main__':
     initiate_genesis_block()
     send_tasks_to_BC()
     time_start = time.time()
-    miners_trigger(miner_list, type_of_consensus)
+    if blockchainFunction == 2:
+        expected_chain_length = ceil((num_of_users_per_fog_node * NumOfTaskPerUser * NumOfFogNodes))
+    new_consensus_module.miners_trigger(miner_list, type_of_consensus, expected_chain_length, Parallel_PoW_mining, numOfTXperBlock, blockchainFunction, poet_block_time, Asymmetric_key_length)
     blockchain.award_winning_miners(len(miner_list))
     blockchain.fork_analysis(miner_list)
     output.finish()
     elapsed_time = time.time() - time_start
     print("elapsed time = " + str(elapsed_time) + " seconds")
+

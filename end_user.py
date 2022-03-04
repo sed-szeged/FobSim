@@ -6,6 +6,7 @@ import modification
 
 data = modification.read_file("Sim_parameters.json")
 
+
 class User:
     def __init__(self, address, parent):
         self.addressParent = parent
@@ -28,21 +29,22 @@ class User:
         for obj in list_of_fog_nodes:
             if obj.address == self.addressParent:
                 obj.receive_tasks(self.tasks, self.addressSelf)
+                break
 
     def __apply_first_functionality(self, num_of_task_per_user):
-        for l in range(num_of_task_per_user):
+        for task_number in range(num_of_task_per_user):
             self.tasks.append(random.randint(0, 1000000))
         output.txs_success(num_of_task_per_user, self.addressParent, self.addressSelf)
 
     def __apply_second_functionality(self, num_of_task_per_user):
         operations = ['+', '-', '*', '/']
-        for i in range(num_of_task_per_user):
+        for task_number in range(num_of_task_per_user):
             operation = random.choice(operations)
             random_computational_task = str(randrange(1000)) + operation + str(randrange(1000))
             self.tasks.append([self.addressParent, self.addressSelf, random_computational_task])
 
     def __apply_third_functionality(self, num_of_task_per_user, list_of_end_users):
-        for i in range(num_of_task_per_user):
+        for task_number in range(num_of_task_per_user):
             payment = randrange(round(data["Max_enduser_payment"], 0))
             receiver = random.choice(list_of_end_users)
             receiver_parent_address = receiver.addressParent

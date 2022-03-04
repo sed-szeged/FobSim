@@ -4,20 +4,20 @@ def genesis_block_generation():
 
 
 def block_info(block, consensus_algorithm):
-    print("The following block has been proposed by " + block['generator_id'] +
+    print("The following block has been proposed by " + block['Header']['generator_id'] +
           " and is generated into the Blockchain network")
     print("**************************")
     print("transactions:")
-    print(block['transactions'])
+    print(block['Body']['transactions'])
     print("hash:")
-    print(block['hash'])
+    print(block['Header']['hash'])
     print("timestamp:")
-    print(block['timestamp'])
+    print(block['Body']['timestamp'])
     if consensus_algorithm == 1:
         print("nonce:")
-        print(block['nonce'])
+        print(block['Body']['nonce'])
     print("previous_hash:")
-    print(block['previous_hash'])
+    print(block['Body']['previous_hash'])
     print("**************************")
 
 
@@ -30,8 +30,9 @@ def block_success_addition(self_address, generator_id):
 
 
 def simulation_progress(current_chain_length, expected_chain_length):
-    print("The simulation have passed " + str(100*((current_chain_length+1)/expected_chain_length)) + "% of TXs to miners")
-    print("Miners will mint new valid blocks and generate them to The BC network")
+    # print("The simulation have passed " + str(100*((current_chain_length+1)/expected_chain_length)) + "% of TXs to miners")
+    # print("Miners will mint new valid blocks and generate them to The BC network")
+    pass
 
 
 def fork_analysis(number_of_forks):
@@ -80,11 +81,10 @@ def choose_placement():
           "(2) End-User layer\n")
 
 
-def choose_consensus():
-    print("Please choose the Consensus algorithm to be used in the simulation:\n"
-          "(1) Proof of Work: PoW\n"
-          "(2) Proof of Stake: PoS\n"
-          "(3) Proof of Authority: PoA\n")
+def choose_consensus(dict_of_consensus_algos):
+    print("\nPlease choose the Consensus algorithm to be used in the simulation:\n")
+    for key in dict_of_consensus_algos:
+        print(key + ': ' + dict_of_consensus_algos[key])
 
 
 def txs_success(txs_per_user, parent_add, self_add):

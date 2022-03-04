@@ -1,9 +1,7 @@
 import hashlib
-import json
 import random
 import time
 import output
-import os
 import modification
 
 data = modification.read_file("Sim_parameters.json")
@@ -11,25 +9,6 @@ diff = data["puzzle_difficulty"]
 target = 2 ** (256 - diff)
 list_of_stakes = [['Network', 0]]
 mining_award = data["mining_award"]
-
-
-def generate_new_block(transactions, generator_id, previous_hash):
-    new_block = {'transactions': transactions,
-                 'blockNo': 0,
-                 'nonce': 0,
-                 'generator_id': generator_id,
-                 'previous_hash': previous_hash,
-                 'timestamp': time.ctime(),
-                 'hash': 0}
-    new_block['hash'] = hashing_function(new_block['nonce'], new_block['transactions'], new_block['generator_id'], new_block['previous_hash'])
-    return new_block
-
-
-def hashing_function(nonce, transactions, generator_id, previous_hash):
-    h = hashlib.sha256()
-    h.update(str(nonce).encode(encoding='UTF-8') + str(transactions).encode(encoding='UTF-8')
-             + str(generator_id).encode(encoding='UTF-8') + str(previous_hash).encode(encoding='UTF-8'))
-    return h.hexdigest()
 
 
 def report_a_successful_block_addition(winning_miner, hash_of_added_block):
