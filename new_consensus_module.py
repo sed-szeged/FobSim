@@ -86,24 +86,25 @@ def trigger_poet_miners(expected_chain_length, the_miners_list, poet_block_time,
         obj.waiting_times = PoET_server.generate_random_waiting_times(expected_chain_length, poet_block_time, obj.address)
         private_key, public_key = encryption_module.generate_PKI_keys(Asymmetric_key_length, obj.address+'_key')
     mining_processes = []
-    while mempool.MemPool.qsize() > 0:
+    for counter in range(expected_chain_length):
         if Parallel_PoW_mining:
             # parallel approach
-            obj = random.choice(the_miners_list)
-            process = Process(target=obj.build_block, args=(
-                numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction,
-                expected_chain_length,))
-            process.start()
-            mining_processes.append(process)
-        else:
-            # non-parallel approach
             for obj in the_miners_list:
-                obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction, expected_chain_length)
-            # longest_chain = modification.read_file('temporary/longest_chain.json')
-    for process in mining_processes:
-        process.join()
-
-    # output.simulation_progress(len(longest_chain), expected_chain_length)
+                process = Process(target=obj.build_block, args=(
+                    numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction,
+                    expected_chain_length,))
+                process.start()
+                mining_processes.append(process)
+            for process in mining_processes:
+                process.join()
+            time.sleep(poet_block_time - 1)
+        else:
+            if mempool.MemPool.qsize() == 0:
+                break
+            else:
+                obj = random.choice(the_miners_list)
+                obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction,
+                                expected_chain_length)
 
 
 def pow_mining(block):
