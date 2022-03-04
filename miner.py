@@ -19,13 +19,11 @@ class Miner:
         self.waiting_times = {}
 
     def build_block(self, num_of_tx_per_block, mempool, miner_list, type_of_consensus, blockchain_function, expected_chain_length):
-        condition1 = type_of_consensus == 3 and not self.isAuthorized
-        condition2 = type_of_consensus == 4
-        if condition2:
+        if type_of_consensus == 3 and not self.isAuthorized:
+            output.unauthorized_miner_msg(self.address)
+        elif type_of_consensus == 4:
             if time.time() < (self.top_block['Body']['timestamp'] + self.waiting_times[self.top_block['Header']['blockNo'] + 1]):
                 pass
-        if condition1:
-            output.unauthorized_miner_msg(self.address)
         else:
             accumulated_transactions = accumulate_transactions(num_of_tx_per_block, mempool, blockchain_function, self.address)
             if accumulated_transactions:
