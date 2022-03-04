@@ -87,24 +87,29 @@ def trigger_poet_miners(expected_chain_length, the_miners_list, poet_block_time,
         private_key, public_key = encryption_module.generate_PKI_keys(Asymmetric_key_length, obj.address+'_key')
     mining_processes = []
     for counter in range(expected_chain_length):
+        least_waiting_time = poet_block_time + 1
+        least_waiting_time_for = []
+        for obj in the_miners_list:
+            if PoET_server.network_waiting_times[obj.address][counter + 1] <= least_waiting_time:
+                least_waiting_time = PoET_server.network_waiting_times[obj.address][counter + 1]
+                least_waiting_time_for.append(obj.address)
+        time.sleep(least_waiting_time)
         if Parallel_PoW_mining:
             # parallel approach
             for obj in the_miners_list:
-                process = Process(target=obj.build_block, args=(
-                    numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction,
-                    expected_chain_length,))
-                process.start()
-                mining_processes.append(process)
+                if obj.address in least_waiting_time_for:
+                    process = Process(target=obj.build_block, args=(
+                        numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction,
+                        expected_chain_length,))
+                    process.start()
+                    mining_processes.append(process)
             for process in mining_processes:
                 process.join()
-            time.sleep(poet_block_time)
         else:
-            if mempool.MemPool.qsize() == 0:
-                break
-            else:
-                obj = random.choice(the_miners_list)
-                obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction,
-                                expected_chain_length)
+            for obj in the_miners_list:
+                if obj.address in least_waiting_time_for:
+                    obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction,
+                                    expected_chain_length)
 
 
 def pow_mining(block):
