@@ -97,7 +97,7 @@ def trigger_poet_miners(expected_chain_length, the_miners_list, poet_block_time,
                 mining_processes.append(process)
             for process in mining_processes:
                 process.join()
-            time.sleep(poet_block_time - 1)
+            time.sleep(poet_block_time)
         else:
             if mempool.MemPool.qsize() == 0:
                 break
