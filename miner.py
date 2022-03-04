@@ -22,7 +22,7 @@ class Miner:
         if type_of_consensus == 3 and not self.isAuthorized:
             output.unauthorized_miner_msg(self.address)
         elif type_of_consensus == 4:
-            if time.time() < (self.top_block['Body']['timestamp'] + self.waiting_times[self.top_block['Header']['blockNo'] + 1]):
+            if time.time() < (self.top_block['Body']['timestamp'] + self.waiting_times[self.top_block['Header']['blockNo']]):
                 pass
         else:
             accumulated_transactions = accumulate_transactions(num_of_tx_per_block, mempool, blockchain_function, self.address)
