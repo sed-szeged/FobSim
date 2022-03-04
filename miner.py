@@ -22,24 +22,33 @@ class Miner:
         if type_of_consensus == 3 and not self.isAuthorized:
             output.unauthorized_miner_msg(self.address)
         elif type_of_consensus == 4:
-            if time.time() < (self.top_block['Body']['timestamp'] + self.waiting_times[self.top_block['Header']['blockNo']]):
+            if time.time() < (self.top_block['Body']['timestamp'] + self.waiting_times[self.top_block['Header']['blockNo'] + 1]):
                 pass
+            else:
+                self.continue_building_block(num_of_tx_per_block, mempool, miner_list, type_of_consensus, blockchain_function, expected_chain_length)
         else:
-            accumulated_transactions = accumulate_transactions(num_of_tx_per_block, mempool, blockchain_function, self.address)
-            if accumulated_transactions:
-                transactions = accumulated_transactions
-                if blockchain_function == 3:
-                    transactions = self.validate_transactions(transactions, "generator")
-                if self.gossiping:
-                    self.gossip(blockchain_function, miner_list)
-                new_block = new_consensus_module.generate_new_block(transactions, self.address, self.top_block['Header']['hash'], type_of_consensus)
-                if type_of_consensus == 4:
-                    new_block['Header']['PoET'] = encryption_module.retrieve_signature_from_saved_key(new_block['Body']['previous_hash'], self.address)
-                output.block_info(new_block, type_of_consensus)
-                time.sleep(self.trans_delay)
-                for elem in miner_list:
-                    if elem.address in self.neighbours:
-                        elem.receive_new_block(new_block, type_of_consensus, miner_list, blockchain_function, expected_chain_length)
+            self.continue_building_block(num_of_tx_per_block, mempool, miner_list, type_of_consensus, blockchain_function, expected_chain_length)
+
+    def continue_building_block(self, num_of_tx_per_block, mempool, miner_list, type_of_consensus, blockchain_function, expected_chain_length):
+        accumulated_transactions = accumulate_transactions(num_of_tx_per_block, mempool, blockchain_function,
+                                                           self.address)
+        if accumulated_transactions:
+            transactions = accumulated_transactions
+            if blockchain_function == 3:
+                transactions = self.validate_transactions(transactions, "generator")
+            if self.gossiping:
+                self.gossip(blockchain_function, miner_list)
+            new_block = new_consensus_module.generate_new_block(transactions, self.address,
+                                                                self.top_block['Header']['hash'], type_of_consensus)
+            if type_of_consensus == 4:
+                new_block['Header']['PoET'] = encryption_module.retrieve_signature_from_saved_key(
+                    new_block['Body']['previous_hash'], self.address)
+            output.block_info(new_block, type_of_consensus)
+            time.sleep(self.trans_delay)
+            for elem in miner_list:
+                if elem.address in self.neighbours:
+                    elem.receive_new_block(new_block, type_of_consensus, miner_list, blockchain_function,
+                                           expected_chain_length)
 
     def receive_new_block(self, new_block, type_of_consensus, miner_list, blockchain_function, expected_chain_length):
         block_already_received = False
