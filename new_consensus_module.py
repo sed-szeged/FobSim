@@ -113,11 +113,13 @@ def trigger_poet_miners(expected_chain_length, the_miners_list, poet_block_time,
                 if obj.address in least_waiting_time_for:
                     obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction,
                                     expected_chain_length)
-
-        now_time_must_be = start_time + (counter * poet_block_time)
-        difference = now_time_must_be - time.time()
-        if difference > 0:
-            time.sleep(difference)
+        if mempool.MemPool.qsize() == 0:
+            break
+        else:
+            now_time_must_be = start_time + (counter * poet_block_time)
+            difference = now_time_must_be - time.time()
+            if difference > 0:
+                time.sleep(difference)
 
 
 def pow_mining(block):
