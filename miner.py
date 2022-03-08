@@ -23,9 +23,8 @@ class Miner:
             output.unauthorized_miner_msg(self.address)
         elif type_of_consensus == 4:
             waiting_time = (self.top_block['Body']['timestamp'] + self.waiting_times[self.top_block['Header']['blockNo'] + 1]) - time.time()
-            if waiting_time > 0:
-                time.sleep(waiting_time)
-            self.continue_building_block(num_of_tx_per_block, mempool, miner_list, type_of_consensus, blockchain_function, expected_chain_length)
+            if waiting_time <= 0:
+                self.continue_building_block(num_of_tx_per_block, mempool, miner_list, type_of_consensus, blockchain_function, expected_chain_length)
         else:
             self.continue_building_block(num_of_tx_per_block, mempool, miner_list, type_of_consensus, blockchain_function, expected_chain_length)
 
