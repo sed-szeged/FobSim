@@ -82,6 +82,7 @@ def trigger_poa_miners(the_miners_list, the_type_of_consensus, expected_chain_le
 
 
 def trigger_poet_miners(expected_chain_length, the_miners_list, poet_block_time, numOfTXperBlock, the_type_of_consensus, blockchainFunction, Asymmetric_key_length, Parallel_PoW_mining):
+    start_time = time.time()
     for obj in the_miners_list:
         obj.waiting_times = PoET_server.generate_random_waiting_times(expected_chain_length, poet_block_time, obj.address)
         private_key, public_key = encryption_module.generate_PKI_keys(Asymmetric_key_length, obj.address+'_key')
@@ -105,14 +106,15 @@ def trigger_poet_miners(expected_chain_length, the_miners_list, poet_block_time,
                         expected_chain_length,))
                     process.start()
                     mining_processes.append(process)
+            for process in mining_processes:
+                process.join()
         else:
             for obj in the_miners_list:
                 if obj.address in least_waiting_time_for:
                     obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction,
                                     expected_chain_length)
-        for process in mining_processes:
-            process.join()
-        now_time_must_be = (counter + 1) * poet_block_time
+
+        now_time_must_be = start_time + (counter * poet_block_time)
         difference = now_time_must_be - time.time()
         if difference > 0:
             time.sleep(difference)
