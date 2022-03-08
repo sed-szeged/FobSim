@@ -95,7 +95,6 @@ def trigger_poet_miners(expected_chain_length, the_miners_list, poet_block_time,
         for obj in the_miners_list:
             if PoET_server.network_waiting_times[obj.address][counter + 1] == least_waiting_time:
                 least_waiting_time_for.append(obj.address)
-        time.sleep(least_waiting_time)
         if Parallel_PoW_mining:
             # parallel approach
             for obj in the_miners_list:
@@ -105,8 +104,6 @@ def trigger_poet_miners(expected_chain_length, the_miners_list, poet_block_time,
                         expected_chain_length,))
                     process.start()
                     mining_processes.append(process)
-                else:
-                    pass
         else:
             for obj in the_miners_list:
                 if obj.address in least_waiting_time_for:
