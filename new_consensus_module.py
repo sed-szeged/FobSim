@@ -116,7 +116,7 @@ def trigger_poet_miners(expected_chain_length, the_miners_list, poet_block_time,
         if mempool.MemPool.qsize() == 0:
             break
         else:
-            now_time_must_be = start_time + (counter * poet_block_time)
+            now_time_must_be = start_time + ((counter + 1) * poet_block_time)
             difference = now_time_must_be - time.time()
             if difference > 0:
                 time.sleep(difference)
