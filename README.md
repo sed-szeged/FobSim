@@ -58,7 +58,7 @@ IMPORTANT NOTE: Published code should be considered copyrighted whether or not i
 
 2- Clone the FoBSim repo to your PC using Git and modify the code using some editor (e.g. PyCharm).
 
-git clone 
+git clone https://github.com/sed-szeged/FobSim.git
 
 3- Modify the 'Sim_parameters.json' either directly or on the command line (using e.g. vim or nano tools)
 
