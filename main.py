@@ -34,6 +34,7 @@ delay_between_fog_nodes = data["delay_between_fog_nodes"]
 delay_between_end_users = data["delay_between_end_users"]
 poet_block_time = data['poet_block_time']
 Asymmetric_key_length = data['Asymmetric_key_length']
+number_of_DPoS_delegates = data['Num_of_DPoS_delegates']
 
 
 def user_input():
@@ -227,7 +228,10 @@ if __name__ == '__main__':
     time_start = time.time()
     if blockchainFunction == 2:
         expected_chain_length = ceil((num_of_users_per_fog_node * NumOfTaskPerUser * NumOfFogNodes))
-    new_consensus_module.miners_trigger(miner_list, type_of_consensus, expected_chain_length, Parallel_PoW_mining, numOfTXperBlock, blockchainFunction, poet_block_time, Asymmetric_key_length)
+    new_consensus_module.miners_trigger(miner_list, type_of_consensus, expected_chain_length, Parallel_PoW_mining,
+                                        numOfTXperBlock, blockchainFunction, poet_block_time, Asymmetric_key_length,
+                                        number_of_DPoS_delegates)
+
     blockchain.award_winning_miners(len(miner_list))
     blockchain.fork_analysis(miner_list)
     output.finish()
