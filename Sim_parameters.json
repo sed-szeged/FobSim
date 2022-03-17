@@ -6,7 +6,7 @@
   "number_of_each_miner_neighbours": 2,
   "numOfTXperBlock": 5,
   "puzzle_difficulty": 5,
-  "poet_block_time": 10,
+  "poet_block_time": 3,
   "Max_enduser_payment": 100,
   "miners_initial_wallet_value": 1000,
   "mining_award": 5,
