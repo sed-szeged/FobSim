@@ -16,17 +16,6 @@ def generate_PKI_keys(key_length, purpose):
     return string_pri_key, string_pub_key
 
 
-# def generate_schema_keys(purpose):
-#     (pub_key, pri_key) = rsa.newkeys(2048)
-#     string_pub_key = pub_key.save_pkcs1('PEM')
-#     string_pri_key = pri_key.save_pkcs1('PEM')
-#     with open('local_files/keys/' + purpose + "_" + terminology.private + ".key", 'wb') as f1:
-#         f1.write(string_pri_key)
-#     with open('local_files/keys/' + purpose + "_" + terminology.public + ".key", 'wb') as f2:
-#         f2.write(string_pub_key)
-#     return string_pri_key, string_pub_key
-
-
 def generate_symmetric_key():
     symmetric_key = Fernet.generate_key()
     # print('A new symmetric key is generated')
@@ -59,8 +48,6 @@ def prepare_key_for_use(private_or_public, label_of_saved_key=None, actual_key=N
             return rsa.PrivateKey.load_pkcs1(bytes_key, format='PEM')
         if private_or_public == 'public':
             return rsa.key.PublicKey.load_pkcs1(bytes_key, format='PEM')
-            # or..(but not secure):
-            # return pickle.loads(bytes_key)
 
 
 def encrypt_PKI(plain_text, pub_key):
@@ -72,7 +59,6 @@ def encrypt_PKI(plain_text, pub_key):
 def encrypt_symmetric(object_to_be_encrypted, symmetric_key):
     cipher = Fernet(symmetric_key)
     encrypted_object = cipher.encrypt(object_to_be_encrypted)
-    # print('Object is encrypted using symmetric key')
     return encrypted_object
 
 
@@ -105,9 +91,9 @@ def deserialize_signature(serialized_signature):
 
 def serialize_key(old_key, public_or_private):
     bytes_key = old_key.encode('UTF-8')
-    if public_or_private == terminology.public:
+    if public_or_private == 'public':
         return rsa.key.PublicKey.load_pkcs1(bytes_key, format='PEM')
-    if public_or_private == terminology.private:
+    if public_or_private == 'private':
         return rsa.key.PrivateKey.load_pkcs1(bytes_key, format='PEM')
 
 

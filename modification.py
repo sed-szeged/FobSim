@@ -1,7 +1,6 @@
 import random
 import json
 import os
-import time
 import shutil
 
 
@@ -41,7 +40,6 @@ def write_file(file_path, contents):
 
 
 def rewrite_file(file_path, new_version):
-    random_waiting_time = random.randint(1, 10)/100
     while True:
         try:
             try:
@@ -53,5 +51,3 @@ def rewrite_file(file_path, new_version):
             break
         except Exception as e:
             pass
-            # print(e)
-            # time.sleep(random_waiting_time)
