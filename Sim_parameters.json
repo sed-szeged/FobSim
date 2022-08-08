@@ -16,5 +16,6 @@
   "Automatic_PoA_miners_authorization?": true,
   "Parallel_PoW_mining?": false,
   "Asymmetric_key_length": 512,
-  "Num_of_DPoS_delegates": 3
+  "Num_of_DPoS_delegates": 3,
+  "STOR_PLC(0=in the Fog,1=in the BC)": 0
 }

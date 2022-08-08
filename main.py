@@ -35,6 +35,7 @@ delay_between_end_users = data["delay_between_end_users"]
 poet_block_time = data['poet_block_time']
 Asymmetric_key_length = data['Asymmetric_key_length']
 number_of_DPoS_delegates = data['Num_of_DPoS_delegates']
+user_informed = False
 
 
 def user_input():
@@ -198,8 +199,17 @@ def initiate_genesis_block():
 
 
 def send_tasks_to_BC():
+    global user_informed
     for node in fogNodes:
-        node.send_tasks_to_BC()
+        node.send_tasks_to_BC(user_informed)
+        if not user_informed:
+            user_informed = True
+
+
+def store_fog_data():
+    for node in fogNodes:
+        log = open('temporary/Fog_node_'+str(node.address)+'.txt', 'w')
+        log.write(str(node.local_storage))
 
 
 def inform_miners_of_users_wallets():
@@ -235,6 +245,7 @@ if __name__ == '__main__':
     blockchain.award_winning_miners(len(miner_list))
     blockchain.fork_analysis(miner_list)
     output.finish()
+    store_fog_data()
     elapsed_time = time.time() - time_start
     print("elapsed time = " + str(elapsed_time) + " seconds")
 

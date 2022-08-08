@@ -29,6 +29,21 @@ def block_success_addition(self_address, generator_id):
         print("##############################\n")
 
 
+def inform_of_fog_procedure(blockchain_function, stor_plc):
+    if blockchain_function == 1:
+        if stor_plc == 1:
+            print('Tasks will be handled by the Blockchain')
+        else:
+            print('Tasks will be handled by the Fog Layer')
+    if blockchain_function == 2:
+        print('Tasks with +/- operations will be processed and stored by the Fog Layer. Rest will be processed and stored by the Blockchain')
+    if blockchain_function == 3:
+        print('All payment tasks will be handled by the Blockchain')
+    if blockchain_function == 4:
+        print('All Identity data will be stored only in the Fog Layer')
+    confirm = input('Press Enter to proceed or Exit and modify on the SimParameters.json file.')
+
+
 def simulation_progress(current_chain_length, expected_chain_length):
     # print("The simulation have passed " + str(100*((current_chain_length+1)/expected_chain_length)) + "% of TXs to miners")
     # print("Miners will mint new valid blocks and generate them to The BC network")
