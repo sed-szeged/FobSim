@@ -29,6 +29,34 @@ def block_success_addition(self_address, generator_id):
         print("##############################\n")
 
 
+def AI_assisted_mining_wanted():
+    print("Would you like to simulate AI-assisted mining along with the classical PoW mining (input Y/y to agree or N/n to discard)?\n")
+    while True:
+        decision = input()
+        if decision in ['Y', 'y']:
+            wanted = True
+            break
+        elif decision in ['N', 'n']:
+            wanted = False
+            break
+        else:
+            print('Your input is incorrect, please try again:\n')
+    if wanted:
+        print(
+            "Input the portion of miners (percentage out of all active) that should run this mining type (input 1--100)?\n")
+        while True:
+            try:
+                portion = input()
+                float_portion = int(portion) / 100
+                break
+            except Exception as e:
+                print(e)
+                print('Seems your input is incorrect, please try again:\n')
+    else:
+        float_portion = None
+    return wanted, float_portion
+
+
 def inform_of_fog_procedure(blockchain_function, stor_plc):
     if blockchain_function == 1:
         if stor_plc == 1:

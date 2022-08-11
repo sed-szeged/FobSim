@@ -7,6 +7,7 @@ from multiprocessing import Process
 import encryption_module
 import time
 import PoET_server
+import AIModule
 
 # NON-MODIFIABLE PART:
 
@@ -54,7 +55,7 @@ def accumulate_transactions(num_of_tx_per_block, this_mem_pool, blockchain_funct
 
 
 def trigger_pow_miners(the_miners_list, the_type_of_consensus, expected_chain_length, Parallel_PoW_mining,
-                       numOfTXperBlock, blockchainFunction):
+                       numOfTXperBlock, blockchainFunction, AI_assisted_mining_wanted):
     mining_processes = []
     for counter in range(expected_chain_length):
         obj = random.choice(the_miners_list)
@@ -62,13 +63,13 @@ def trigger_pow_miners(the_miners_list, the_type_of_consensus, expected_chain_le
             # parallel approach
             process = Process(target=obj.build_block, args=(
                 numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction,
-                expected_chain_length,))
+                expected_chain_length, AI_assisted_mining_wanted))
             process.start()
             mining_processes.append(process)
         else:
             # non-parallel approach
             obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus,
-                            blockchainFunction, expected_chain_length)
+                            blockchainFunction, expected_chain_length, AI_assisted_mining_wanted)
         output.simulation_progress(counter, expected_chain_length)
     for process in mining_processes:
         process.join()
@@ -171,14 +172,29 @@ def trigger_dpos_miners(expected_chain_length, the_miners_list, number_of_delega
         output.simulation_progress(counter, expected_chain_length)
 
 
-def pow_mining(block):
+def pow_mining(block, AI_assisted_mining_wanted):
+    while True:
+        if AI_assisted_mining_wanted:
+            print('AI-assisted mining is currently under construction. Classical mining will be used for now')
+            # delete the next line when the AI module is ready and uncomment the following commented lines instead.
+            return pow_classical_mining(block)
+            # block['Body']['nonce'] = AIModule.predict_nonce(block)
+            # if pow_block_is_valid(block, block['Body']['previous_hash']):
+            #     break
+            # else:
+            #     block['Body']['nonce'] -= 10
+            #     block = pow_classical_mining(block)
+        else:
+            return pow_classical_mining(block)
+
+
+def pow_classical_mining(block):
     while True:
         block['Header']['hash'] = encryption_module.hashing_function(block['Body'])
         if int(block['Header']['hash'], 16) > blockchain.target:
             block['Body']['nonce'] += 1
         else:
-            break
-    return block
+            return block
 
 
 def dpos_voting(the_miners_list):
@@ -295,7 +311,7 @@ def prepare_necessary_files():
 # 3- the 'generate_new_block' generates a standard-like block. You can add more attributes
 # to your new consensus blocks by adding an IF statement to this function:
 
-def generate_new_block(transactions, generator_id, previous_hash, type_of_consensus):
+def generate_new_block(transactions, generator_id, previous_hash, type_of_consensus, AI_assisted_mining_wanted):
     new_block = {'Header': {'generator_id': generator_id,
                             'hash': '',
                             'blockNo': 0},
@@ -304,7 +320,7 @@ def generate_new_block(transactions, generator_id, previous_hash, type_of_consen
                           'previous_hash': previous_hash,
                           'timestamp': time.time()}}
     if type_of_consensus == 1:
-        new_block = pow_mining(new_block)
+        new_block = pow_mining(new_block, AI_assisted_mining_wanted)
     else:
         new_block['Header']['hash'] = encryption_module.hashing_function(new_block['Body'])
     if type_of_consensus == 4:
@@ -317,10 +333,10 @@ def generate_new_block(transactions, generator_id, previous_hash, type_of_consen
 # add an IF statement to this function so that the simulator would know the trigger reference:
 
 
-def miners_trigger(the_miners_list, the_type_of_consensus, expected_chain_length, Parallel_PoW_mining, numOfTXperBlock, blockchainFunction, poet_block_time, Asymmetric_key_length, number_of_DPoS_delegates):
+def miners_trigger(the_miners_list, the_type_of_consensus, expected_chain_length, Parallel_PoW_mining, numOfTXperBlock, blockchainFunction, poet_block_time, Asymmetric_key_length, number_of_DPoS_delegates, AI_assisted_mining_wanted):
     output.mempool_info(mempool.MemPool)
     if the_type_of_consensus == 1:
-        trigger_pow_miners(the_miners_list, the_type_of_consensus, expected_chain_length, Parallel_PoW_mining, numOfTXperBlock, blockchainFunction)
+        trigger_pow_miners(the_miners_list, the_type_of_consensus, expected_chain_length, Parallel_PoW_mining, numOfTXperBlock, blockchainFunction, AI_assisted_mining_wanted)
     if the_type_of_consensus == 2:
         trigger_pos_miners(the_miners_list, the_type_of_consensus, expected_chain_length, numOfTXperBlock, blockchainFunction)
     if the_type_of_consensus == 3:
