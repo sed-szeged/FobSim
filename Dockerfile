@@ -8,5 +8,6 @@ RUN apt-get install -y python3-pip
 RUN pip install rsa
 RUN apt install -y python3-rsa
 
+COPY . .
 
 CMD ["python3", "./main.py"]
