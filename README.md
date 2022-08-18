@@ -13,6 +13,38 @@ DOI: 10.7717/peerj-cs.431
 
 IMPORTANT NOTE: Published code should be considered copyrighted whether or not it includes an explicit copyright notice. This means that no one can distribute, reproduce, display, or create derivative works of the software without permission of the copyright owner.
 
+# To run FoBSim using Docker:
+1-	Update upt-get:
+
+Sudo apt-get update 
+
+2-	Install Docker Desktop from:
+
+https://www.docker.com/get-started/
+
+(for ubunto: sudo apt install docker.io)
+
+3-	Check the version of the Docker installation:
+
+docker -v
+
+4-	Clone the FoBSim repository
+
+5-	Go to the FoBSim Directory in the command line and build the docker image:
+
+sudo docker build -t fobsim .
+
+6-	Start the FoBSim container by typing:
+
+sudo docker run -it fobsim
+
+#To run FoBSim without Docker:
+1- clone the FoBSim repository
+
+2- run python3 main.py
+
+3- you may be asked to install some libraries (python3-rsa, cryptography, etc.)
+
 # The components implemented in FoBSim contains:
 1- Fog layer implementation.
 
@@ -53,7 +85,9 @@ IMPORTANT NOTE: Published code should be considered copyrighted whether or not i
 
 4- NEW: Proof-of-Elapsed-Time (PoET)
 
-# Steps to running FoBSim:
+5- NEW: delegated Proof-of-Stack (dPoS)
+
+# Steps to running FoBSim simulation:
 1- Install Git to your PC ((https://git-scm.com/book/en/v2/Getting-Started-Installing-Git))
 
 2- Clone the FoBSim repo to your PC using Git and modify the code using some editor (e.g. PyCharm).
