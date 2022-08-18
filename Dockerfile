@@ -9,4 +9,4 @@ RUN apt install python3-rsa
 
 COPY . .
 
-CMD ["python3", "./main.py"]
+CMD ["python", "./main.py"]
