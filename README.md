@@ -38,7 +38,7 @@ sudo docker build -t fobsim .
 
 sudo docker run -it fobsim
 
-#To run FoBSim without Docker:
+# To run FoBSim without Docker:
 
 1- update installer: sudo apt-get update
 
