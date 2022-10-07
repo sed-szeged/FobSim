@@ -2,6 +2,19 @@ import random
 import json
 import os
 import shutil
+import time
+import multiprocessing
+
+keychain = multiprocessing.Queue()
+
+
+def get_key():
+    while not keychain.empty():
+        keychain.get()
+
+
+def return_key():
+    keychain.put('KEY')
 
 
 def initiate_files(gossip_activated):
@@ -21,33 +34,48 @@ def initiate_files(gossip_activated):
 
 
 def read_file(file_path):
-    # random_waiting_time = random.randint(1, 10) / 100
+    while keychain.empty():
+        time.sleep(0.1)
+    get_key()
     while True:
         try:
             with open(file_path, 'r') as f:
                 file = json.load(f)
-                break
+            return_key()
+            return file
         except Exception as e:
             pass
-            # print(e)
-            # time.sleep(random_waiting_time)
-    return file
 
 
 def write_file(file_path, contents):
-    with open(file_path, 'w') as f:
-        json.dump(contents, f, indent=4)
-
-
-def rewrite_file(file_path, new_version):
+    while keychain.empty():
+        time.sleep(0.1)
+    get_key()
     while True:
         try:
-            try:
-                os.remove(file_path)
-            except Exception as problem_with_file:
-                pass
-            with open(file_path, "w") as f:
-                json.dump(new_version, f, indent=4)
+            with open(file_path, 'w') as f:
+                json.dump(contents, f, indent=4)
+            return_key()
             break
         except Exception as e:
             pass
+
+
+def rewrite_file(file_path, new_version):
+    while keychain.empty():
+        time.sleep(0.1)
+    get_key()
+    while True:
+        try:
+            os.remove(file_path)
+        except Exception as e:
+            try:
+                with open(file_path, "w") as f:
+                    json.dump(new_version, f, indent=4)
+                return_key()
+                break
+            except Exception as e:
+                pass
+
+
+return_key()

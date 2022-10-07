@@ -2,8 +2,8 @@
   "NumOfFogNodes": 5,
   "num_of_users_per_fog_node": 5,
   "NumOfTaskPerUser": 1,
-  "NumOfMiners": 5,
-  "number_of_each_miner_neighbours": 2,
+  "NumOfMiners": 2,
+  "number_of_each_miner_neighbours": 1,
   "numOfTXperBlock": 5,
   "puzzle_difficulty": 5,
   "poet_block_time": 2,
@@ -12,10 +12,10 @@
   "mining_award": 5,
   "delay_between_fog_nodes": 0,
   "delay_between_end_users": 0,
-  "Gossip_Activated": false,
+  "Gossip_Activated": true,
   "Automatic_PoA_miners_authorization?": true,
-  "Parallel_PoW_mining?": false,
+  "Parallel_PoW_mining?": true,
   "Asymmetric_key_length": 512,
-  "Num_of_DPoS_delegates": 3,
-  "STOR_PLC(0=in the Fog,1=in the BC)": 0
+  "Num_of_DPoS_delegates": 1,
+  "STOR_PLC(0=in the Fog,1=in the BC)": 2
 }

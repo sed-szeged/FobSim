@@ -1,4 +1,5 @@
 import hashlib
+import os
 import random
 import output
 import modification
@@ -8,6 +9,10 @@ diff = data["puzzle_difficulty"]
 target = 2 ** (256 - diff)
 list_of_stakes = [['Network', 0]]
 mining_award = data["mining_award"]
+
+
+def get_max_hash():
+    return target
 
 
 def report_a_successful_block_addition(winning_miner, hash_of_added_block):
@@ -23,15 +28,32 @@ def report_a_successful_block_addition(winning_miner, hash_of_added_block):
     modification.rewrite_file("temporary/confirmation_log.json", temporary_confirmation_log)
 
 
-def award_winning_miners(num_of_miners):
+def award_winning_miners(num_of_miners, list_of_miners):
     final_confirmation_log = modification.read_file("temporary/confirmation_log.json")
     miner_final_wallets_log_py = modification.read_file("temporary/miner_wallets_log.json")
+    number_of_blocks_generated_by_adversary_miners = 0
     for key in final_confirmation_log:
         if final_confirmation_log[key]['votes'] > int(num_of_miners/2):
             for key1 in miner_final_wallets_log_py:
                 if key1 == final_confirmation_log[key]['winning_miner']:
                     miner_final_wallets_log_py[key1] += mining_award
+                    if generator_is_adversary(key1, list_of_miners):
+                        number_of_blocks_generated_by_adversary_miners += 1
+    try:
+        print('Success Score for Adversary Portion (if any)= ' +
+              str(number_of_blocks_generated_by_adversary_miners * 100 / len(final_confirmation_log)) + ' %')
+    except Exception as e:
+        pass
     modification.rewrite_file("temporary/miner_wallets_log.json", miner_final_wallets_log_py)
+
+
+def generator_is_adversary(generator, list_of_miners):
+    for miner in list_of_miners:
+        try:
+            if miner.address == generator:
+                return miner.adversary
+        except Exception as e:
+            print(e)
 
 
 def stake(list_of_miners, num_of_consensus):

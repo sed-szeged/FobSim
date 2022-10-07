@@ -47,4 +47,3 @@ class Fog:
                 mempool.MemPool.put(task)
         if temporary_task[-1] == 4:
             self.local_storage.extend(self.tasks)
-                

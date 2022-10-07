@@ -11,10 +11,10 @@ https://peerj.com/articles/cs-431/
 
 DOI: 10.7717/peerj-cs.431
 
-IMPORTANT NOTE: Published code should be considered copyrighted whether or not it includes an explicit copyright notice. This means that no one can distribute, reproduce, display, or create derivative works of the software without permission of the copyright owner.
+IMPORTANT NOTE: Published code should be considered copyrighted whether or not it includes an explicit copyright notice. This means that no one can distribute, reproduce, display, or create derivative works of the software, for commercial purposes, without permission of the copyright owner. Nevertheless, permission is granted for reproducing and creating derivative works for noncommercial activities (e.g. Research), given that appropriate crediting is provided, and changes that were made were indicated. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.
 
 # To run FoBSim using Docker:
-1-	Update upt-get:
+1-	Update apt-get:
 
 Sudo apt-get update 
 
@@ -39,11 +39,17 @@ sudo docker build -t fobsim .
 sudo docker run -it fobsim
 
 #To run FoBSim without Docker:
-1- clone the FoBSim repository
+1- update installer: sudo apt-get update
 
-2- run python3 main.py
+2- install git: sudo apt-get install git-all
 
-3- you may be asked to install some libraries (python3-rsa, cryptography, etc.)
+3- clone FoBSim: git clone https://github.com/sed-szeged/FobSim.git
+
+4- install pip: sudo apt install python3-pip
+
+5- install rsa: pip install rsa
+
+6- run: python3 main.py
 
 # The components implemented in FoBSim contains:
 1- Fog layer implementation.
@@ -87,16 +93,8 @@ sudo docker run -it fobsim
 
 5- NEW: delegated Proof-of-Stack (dPoS)
 
-# Steps to running FoBSim simulation:
-1- Install Git to your PC ((https://git-scm.com/book/en/v2/Getting-Started-Installing-Git))
-
-2- Clone the FoBSim repo to your PC using Git and modify the code using some editor (e.g. PyCharm).
-
-git clone https://github.com/sed-szeged/FobSim.git
-
-3- Modify the 'Sim_parameters.json' either directly or on the command line (using e.g. vim or nano tools)
-
-4- In the FoBSim root folder, run the command python3 main.py. (install any missing dependency your system is missing, which should be given as an error message)
+# Running FoBSim simulation:
+After you clone the repository as clarified above, modify the 'Sim_parameters.json' either directly or on the command line (using e.g. vim or nano tools)
 
 # Steps to add a new consensus algorithm (proof-based):
 0- You must be familiar with Python language.

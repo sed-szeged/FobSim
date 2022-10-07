@@ -51,7 +51,8 @@ class Miner:
         if self.gossiping:
             self.gossip(blockchain_function, miner_list)
         new_block = new_consensus_module.generate_new_block(transactions, self.address,
-                                                            self.top_block['Header']['hash'], type_of_consensus, AI_assisted_mining_wanted)
+                                                            self.top_block['Header']['hash'], type_of_consensus,
+                                                            AI_assisted_mining_wanted, self.adversary)
         if type_of_consensus == 4:
             new_block['Header']['PoET'] = encryption_module.retrieve_signature_from_saved_key(
                 new_block['Body']['previous_hash'], self.address)
@@ -107,14 +108,7 @@ class Miner:
 
     def add(self, block, blockchain_function, expected_chain_length, list_of_miners):
         ready = False
-        while True:
-            try:
-                local_chain_external_file = open(str("temporary/" + self.address + "_local_chain.json"))
-                local_chain_temporary_file = json.load(local_chain_external_file)
-                local_chain_external_file.close()
-                break
-            except:
-                time.sleep(0.2)
+        local_chain_temporary_file = modification.read_file("temporary/" + self.address + "_local_chain.json")
         if len(local_chain_temporary_file) == 0:
             ready = True
         else:

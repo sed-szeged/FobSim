@@ -204,7 +204,7 @@ def initiate_genesis_block(AI_wanted):
     genesis_transactions = ["genesis_block"]
     for i in range(len(miner_list)):
         genesis_transactions.append(miner_list[i].address)
-    genesis_block = new_consensus_module.generate_new_block(genesis_transactions, 'The Network', 0, type_of_consensus, AI_wanted)
+    genesis_block = new_consensus_module.generate_new_block(genesis_transactions, 'The Network', 0, type_of_consensus, AI_wanted, False)
     output.block_info(genesis_block, type_of_consensus)
     for elem in miner_list:
         elem.receive_new_block(genesis_block, type_of_consensus, miner_list, blockchainFunction, expected_chain_length)
@@ -255,7 +255,7 @@ if __name__ == '__main__':
                                         numOfTXperBlock, blockchainFunction, poet_block_time, Asymmetric_key_length,
                                         number_of_DPoS_delegates, AI_assisted_mining_wanted)
 
-    blockchain.award_winning_miners(len(miner_list))
+    blockchain.award_winning_miners(len(miner_list), miner_list)
     blockchain.fork_analysis(miner_list)
     output.finish()
     store_fog_data()
