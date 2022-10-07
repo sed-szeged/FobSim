@@ -5,7 +5,7 @@ import output
 import modification
 
 data = modification.read_file("Sim_parameters.json")
-diff = data["puzzle_difficulty"]
+diff = data["puzzle_difficulty"] * 4
 target = 2 ** (256 - diff)
 list_of_stakes = [['Network', 0]]
 mining_award = data["mining_award"]
