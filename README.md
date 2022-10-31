@@ -11,6 +11,8 @@ https://peerj.com/articles/cs-431/
 
 DOI: 10.7717/peerj-cs.431
 
+Full tutorial on Youtube: https://youtube.com/playlist?list=PLpRuKQ4GtoaMnRw8J31a_2EuuCYpBQGxS
+
 IMPORTANT NOTE: Published code should be considered copyrighted whether or not it includes an explicit copyright notice. This means that no one can distribute, reproduce, display, or create derivative works of the software, for commercial purposes, without permission of the copyright owner. Nevertheless, permission is granted for reproducing and creating derivative works for noncommercial activities (e.g. Research), given that appropriate crediting is provided, and changes that were made were indicated. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.
 
 # To run FoBSim using Docker:
