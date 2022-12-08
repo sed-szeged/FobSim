@@ -66,6 +66,8 @@ def trigger_pow_miners(the_miners_list, the_type_of_consensus, expected_chain_le
                 expected_chain_length, AI_assisted_mining_wanted))
             process.start()
             mining_processes.append(process)
+            print("  \t",mining_processes,"\n",obj.__dict__)
+
         else:
             # non-parallel approach
             obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus,
@@ -78,10 +80,8 @@ def trigger_pow_miners(the_miners_list, the_type_of_consensus, expected_chain_le
 def trigger_pos_miners(the_miners_list, the_type_of_consensus, expected_chain_length, numOfTXperBlock,
                        blockchainFunction):
     for counter in range(expected_chain_length):
-        randomly_chosen_miners = []
         x = int(round((len(the_miners_list) / 2), 0))
-        for i in range(x):
-            randomly_chosen_miners.append(random.choice(the_miners_list))
+        randomly_chosen_miners = [random.choice(the_miners_list) for _ in range(x)]
         biggest_stake = 0
         final_chosen_miner = the_miners_list[0]
         temp_file_py = modification.read_file('temporary/miners_stake_amounts.json')
@@ -133,13 +133,14 @@ def trigger_poet_miners(expected_chain_length, the_miners_list, poet_block_time,
                         expected_chain_length, None,))
                     process.start()
                     mining_processes.append(process)
+
             for process in mining_processes:
                 process.join()
         else:
             for obj in the_miners_list:
                 if obj.address in least_waiting_time_for:
                     obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction,
-                                    expected_chain_length)
+                                    expected_chain_length, False)
         if mempool.MemPool.qsize() == 0:
             break
         else:
@@ -170,6 +171,23 @@ def trigger_dpos_miners(expected_chain_length, the_miners_list, number_of_delega
         for process in processes:
             process.join()
         output.simulation_progress(counter, expected_chain_length)
+        
+
+def trigger_bft_miners(the_miners_list, the_type_of_consensus, numOfTXperBlock, blockchainFunction):
+    for miner in the_miners_list:
+        if miner.leader == miner.address:
+            while mempool.MemPool.qsize() > 0:
+                pre_prepare_block = miner.build_BFT_block(the_miners_list, the_type_of_consensus, mempool.MemPool, numOfTXperBlock, blockchainFunction)
+                for elem in the_miners_list:
+                    elem.process_pre_prepare_block(pre_prepare_block)
+                for elem in the_miners_list:
+                    if elem.address != miner.address:
+                        elem.send_prepare_blocks(pre_prepare_block, the_miners_list)
+                for elem in the_miners_list:
+                    elem.decide_to_commit(pre_prepare_block, the_miners_list)
+                for elem in the_miners_list:
+                    elem.announce_commitment_status(pre_prepare_block, blockchainFunction, the_miners_list)
+            break
 
 
 def pow_mining(block, AI_assisted_mining_wanted, is_adversary):
@@ -182,38 +200,29 @@ def pow_mining(block, AI_assisted_mining_wanted, is_adversary):
             block['Header']['hash'] = encryption_module.hashing_function(block['Body'])
             if pow_block_is_valid(block, block['Body']['previous_hash']):
                 new_block = block
-                break
             else:
                 new_block = pow_classical_mining(block)
-                break
         else:
             new_block = pow_classical_mining(block)
-            break
+        break
     return new_block
 
 
 def pow_classical_mining(block):
-    if block['Body']['nonce'] > 4000000000/2:
-        up = False
-    else:
-        up = True
-    for i in range(1, 4000000000):
+    up = block['Body']['nonce'] <= 4000000000/2
+    for _ in range(1, 4000000000):
         block['Header']['hash'] = encryption_module.hashing_function(block['Body'])
         if int(block['Header']['hash'], 16) <= blockchain.target:
             return block
+        if up:
+            block['Body']['nonce'] += 1
         else:
-            if up:
-                block['Body']['nonce'] += 1
-            else:
-                block['Body']['nonce'] -= 1
-            continue
+            block['Body']['nonce'] -= 1
 
 
 def dpos_voting(the_miners_list):
     temp_file_py = modification.read_file('temporary/miner_wallets_log.json')
-    votes_and_stakes = {}
-    for miner in the_miners_list:
-        votes_and_stakes[miner.address] = {}
+    votes_and_stakes = {miner.address: {} for miner in the_miners_list}
     for miner in the_miners_list:
         chosen_miner = miner
         while chosen_miner == miner:
@@ -251,9 +260,7 @@ def pos_block_is_valid(generator_id, next_block_from, block, expected_previous_h
     condition_1 = block['Header']['hash'] == encryption_module.hashing_function(block['Body'])
     condition_2 = block['Body']['previous_hash'] == expected_previous_hash
     condition_3 = generator_id == next_block_from
-    if condition_1 and condition_2 and condition_3:
-        return True
-    return False
+    return condition_1 and condition_2 and condition_3
 
 
 def poa_block_is_valid(block, expected_previous_hash, miner_list):
@@ -286,11 +293,17 @@ def dpos_block_is_valid(new_block, delegates, expected_previous_hash):
         condition3 = new_block['Body']['previous_hash'] == expected_previous_hash
         if condition1 and condition2 and condition3:
             return True
-    except:
+    except Exception:
         pass
     return False
 
 
+def bft_block_is_valid(new_block, expected_previous_hash):
+    condition1 = new_block['Body']['previous_hash'] == expected_previous_hash
+    condition2 = new_block['Header']['hash'] == encryption_module.hashing_function(new_block['Body'])
+    if condition1 and condition2:
+        return True
+    return False
 
 
 # MODIFIABLE PART:
@@ -303,7 +316,8 @@ blockchain_CAs = {'1': 'Proof of Work (PoW)',
                   '3': 'Proof of Authority (PoA)',
                   '4': 'Proof of Elapsed Time (PoET)',
                   '5': 'Delegated Proof of Stake (DPoS)',
-                  '6': 'Example New CA'}
+                  '6': 'Practical Byzantine Fault Tolerance (pBFT)',
+                  '7': 'Dummy Consensus Algorithm'}
 
 # 2-if your consensus algorithm requires other files to refer to while miners are
 # processing TXs and Blocks, add them to the
@@ -314,9 +328,6 @@ blockchain_CAs = {'1': 'Proof of Work (PoW)',
 def prepare_necessary_files():
     if num_of_consensus in [2, 5]:
         modification.write_file('temporary/miners_stake_amounts.json', {})
-    if num_of_consensus == 6:
-        pass
-        # modification.write_file('temporary/example_of_new_log_file.json', {})
 
 
 # 3- the 'generate_new_block' generates a standard-like block. You can add more attributes
@@ -340,6 +351,11 @@ def generate_new_block(transactions, generator_id, previous_hash, type_of_consen
         new_block['Header']['PoET'] = ''
     if type_of_consensus == 5:
         new_block['Header']['dummy_new_proof'] = dummy_proof_generator_function(new_block)
+    if type_of_consensus == 6:
+        new_block['Header']['status'] = "PREPREPARE"
+    if type_of_consensus == 7:
+        new_block['Header']['dummy_new_proof'] = dummy_proof_generator_function(new_block)
+        
     return new_block
 
 # 4- the 'miners_trigger' function triggers the miners to start mining/minting new blocks.
@@ -359,7 +375,10 @@ def miners_trigger(the_miners_list, the_type_of_consensus, expected_chain_length
     if the_type_of_consensus == 5:
         trigger_dpos_miners(expected_chain_length, the_miners_list, number_of_DPoS_delegates, numOfTXperBlock, the_type_of_consensus, blockchainFunction, Parallel_PoW_mining)
     if the_type_of_consensus == 6:
+        trigger_bft_miners(the_miners_list, the_type_of_consensus, numOfTXperBlock, blockchainFunction)
+    if the_type_of_consensus == 7:
         trigger_dummy_miners(the_miners_list, numOfTXperBlock, the_type_of_consensus, blockchainFunction, expected_chain_length)
+    
 
 # 5- Add miner selection strategy here in a trigger_miners function as follows. The Selection strategy can be
 # randomized (as non-parallel PoW), conditioned (as PoS), parallel-randomized (as PoW), FCFS (as PoA), etc.
@@ -391,7 +410,9 @@ def block_is_valid(type_of_consensus, new_block, top_block, next_pos_block_from,
         return poet_block_is_valid(top_block, new_block)
     if type_of_consensus == 5:
         return dpos_block_is_valid(new_block, delegates, top_block['Header']['hash'])
-    if type_of_consensus == 6:
+    if type_of_consensus ==6:
+        return bft_block_is_valid(new_block, top_block['Header']['hash'])
+    if type_of_consensus == 7:
         return dummy_block_is_valid(new_block)
 
 

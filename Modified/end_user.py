@@ -32,19 +32,19 @@ class User:
                 break
 
     def __apply_first_functionality(self, num_of_task_per_user, blockchain_function):
-        for task_number in range(num_of_task_per_user):
+        for _ in range(num_of_task_per_user):
             self.tasks.append([random.randint(0, 1000000), blockchain_function])
         output.txs_success(num_of_task_per_user, self.addressParent, self.addressSelf)
 
     def __apply_second_functionality(self, num_of_task_per_user, blockchain_function):
         operations = ['+', '-', '*', '/']
-        for task_number in range(num_of_task_per_user):
+        for _ in range(num_of_task_per_user):
             operation = random.choice(operations)
             random_computational_task = str(randrange(1000000)) + operation + str(randrange(1000000))
             self.tasks.append([self.addressParent, self.addressSelf, random_computational_task, blockchain_function])
 
     def __apply_third_functionality(self, num_of_task_per_user, list_of_end_users, blockchain_function):
-        for task_number in range(num_of_task_per_user):
+        for _ in range(num_of_task_per_user):
             payment = randrange(round(data["Max_enduser_payment"], 0))
             receiver = random.choice(list_of_end_users)
             receiver_parent_address = receiver.addressParent
@@ -61,5 +61,4 @@ class User:
 
 def add_new_attributes(user):
     for key in user.identity_added_attributes:
-        user.identity_added_attributes[key] = input(
-            str(user.addressParent) + "." + str(user.addressSelf) + ": " + key + ">> ")
+        user.identity_added_attributes[key] = input(f"{str(user.addressParent)}.{str(user.addressSelf)}: {key}>> ")

@@ -1,0 +1,127 @@
+{
+    "1.1": {
+        "parent": 1,
+        "self": 1,
+        "wallet_value": 193
+    },
+    "1.2": {
+        "parent": 1,
+        "self": 2,
+        "wallet_value": 54
+    },
+    "1.3": {
+        "parent": 1,
+        "self": 3,
+        "wallet_value": 59
+    },
+    "1.4": {
+        "parent": 1,
+        "self": 4,
+        "wallet_value": 500
+    },
+    "1.5": {
+        "parent": 1,
+        "self": 5,
+        "wallet_value": 500
+    },
+    "2.1": {
+        "parent": 2,
+        "self": 1,
+        "wallet_value": 500
+    },
+    "2.2": {
+        "parent": 2,
+        "self": 2,
+        "wallet_value": 500
+    },
+    "2.3": {
+        "parent": 2,
+        "self": 3,
+        "wallet_value": 500
+    },
+    "2.4": {
+        "parent": 2,
+        "self": 4,
+        "wallet_value": 500
+    },
+    "2.5": {
+        "parent": 2,
+        "self": 5,
+        "wallet_value": 590
+    },
+    "3.1": {
+        "parent": 3,
+        "self": 1,
+        "wallet_value": 500
+    },
+    "3.2": {
+        "parent": 3,
+        "self": 2,
+        "wallet_value": 656
+    },
+    "3.3": {
+        "parent": 3,
+        "self": 3,
+        "wallet_value": 500
+    },
+    "3.4": {
+        "parent": 3,
+        "self": 4,
+        "wallet_value": 500
+    },
+    "3.5": {
+        "parent": 3,
+        "self": 5,
+        "wallet_value": 536
+    },
+    "4.1": {
+        "parent": 4,
+        "self": 1,
+        "wallet_value": 532
+    },
+    "4.2": {
+        "parent": 4,
+        "self": 2,
+        "wallet_value": 500
+    },
+    "4.3": {
+        "parent": 4,
+        "self": 3,
+        "wallet_value": 589
+    },
+    "4.4": {
+        "parent": 4,
+        "self": 4,
+        "wallet_value": 500
+    },
+    "4.5": {
+        "parent": 4,
+        "self": 5,
+        "wallet_value": 746
+    },
+    "5.1": {
+        "parent": 5,
+        "self": 1,
+        "wallet_value": 701
+    },
+    "5.2": {
+        "parent": 5,
+        "self": 2,
+        "wallet_value": 636
+    },
+    "5.3": {
+        "parent": 5,
+        "self": 3,
+        "wallet_value": 592
+    },
+    "5.4": {
+        "parent": 5,
+        "self": 4,
+        "wallet_value": 616
+    },
+    "5.5": {
+        "parent": 5,
+        "self": 5,
+        "wallet_value": 500
+    }
+}

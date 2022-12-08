@@ -33,9 +33,9 @@ class Fog:
                 for letter in task[-2]:
                     if letter in ['+', '-']:
                         result = eval(task[-2])
-                        produced_transaction = ['End-user address: ' + str(task[0]) + '.' + str(task[1]),
-                                                'Requested computational task: ' + str(task[2]), 'Result: '
-                                                + str(result), "Performed_by_fog_node_num: " + str(self.address)]
+                        produced_transaction = [f'End-user address: {str(task[0])}.{str(task[1])}', f'Requested computational task: {str(task[2])}', f'Result: {str(result)}', f"Performed_by_fog_node_num: {str(self.address)}"]
+                        
+
                         self.local_storage.append(produced_transaction)
                         break
                     elif letter in ['/', '*']:

@@ -39,7 +39,7 @@ while True:
     if current_file_size == sizes[-1]:
         time.sleep(1)
     else:
-        for i in range(run_time_seconds):
+        for _ in range(run_time_seconds):
             times.append(times[-1] + 1)
             sizes.append(current_file_size)
             time.sleep(1)

@@ -5,25 +5,24 @@ from cryptography.fernet import Fernet
 
 
 def generate_PKI_keys(key_length, purpose):
-    print('generating keys for ' + purpose)
+    print(f'generating keys for {purpose}')
     (pub_key, pri_key) = rsa.newkeys(key_length)
     string_pub_key = pub_key.save_pkcs1('PEM')
     string_pri_key = pri_key.save_pkcs1('PEM')
-    with open('temporary/' + purpose + "_" + 'private' + ".key", 'wb') as f1:
+    with open(f'temporary/{purpose}_private.key', 'wb') as f1:
         f1.write(string_pri_key)
-    with open('temporary/' + purpose + "_" + 'public' + ".key", 'wb') as f2:
+    with open(f'temporary/{purpose}_public.key', 'wb') as f2:
         f2.write(string_pub_key)
     return string_pri_key, string_pub_key
 
 
 def generate_symmetric_key():
-    symmetric_key = Fernet.generate_key()
     # print('A new symmetric key is generated')
-    return symmetric_key
+    return Fernet.generate_key()
 
 
 def retrieve_key_from_saved_file(label, private_or_public):
-    path = 'temporary/' + label + "_key_" + private_or_public + ".key"
+    path = f'temporary/{label}_key_{private_or_public}.key'
     file_path = pathlib.Path(path)
     with open(file_path, 'rb') as f:
         if private_or_public == 'private':
@@ -52,21 +51,18 @@ def prepare_key_for_use(private_or_public, label_of_saved_key=None, actual_key=N
 
 def encrypt_PKI(plain_text, pub_key):
     encoded_msg = plain_text.encode('utf-8')
-    encrypted_msg = rsa.encrypt(encoded_msg, pub_key)
-    return encrypted_msg
+    return rsa.encrypt(encoded_msg, pub_key)
 
 
 def encrypt_symmetric(object_to_be_encrypted, symmetric_key):
     cipher = Fernet(symmetric_key)
-    encrypted_object = cipher.encrypt(object_to_be_encrypted)
-    return encrypted_object
+    return cipher.encrypt(object_to_be_encrypted)
 
 
 def decrypt_PKI(encrypted_msg, pri_key):
     ready = encrypted_msg.encode('latin-1')
     msg = rsa.decrypt(ready, pri_key)
-    ready_symmetric_key = Fernet(msg)
-    return ready_symmetric_key
+    return Fernet(msg)
 
 
 def decrypt_symmetric(encrypted_object, key):
