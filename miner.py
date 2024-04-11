@@ -1,5 +1,4 @@
 import blockchain
-import json
 import time
 import new_consensus_module
 import output
@@ -21,24 +20,30 @@ class Miner:
         self.amount_to_be_staked = None
         self.delegates = None
         self.adversary = False
+        self.local_mempool = []
 
-    def build_block(self, num_of_tx_per_block, mempool, miner_list, type_of_consensus, blockchain_function, expected_chain_length, AI_assisted_mining_wanted):
+    def build_block(self, num_of_tx_per_block, miner_list, type_of_consensus, blockchain_function, expected_chain_length, AI_assisted_mining_wanted):
         if type_of_consensus == 3 and not self.isAuthorized:
             output.unauthorized_miner_msg(self.address)
         elif type_of_consensus == 4:
             waiting_time = (self.top_block['Body']['timestamp'] + self.waiting_times[self.top_block['Header']['blockNo'] + 1]) - time.time()
             if waiting_time <= 0:
-                self.continue_building_block(num_of_tx_per_block, mempool, miner_list, type_of_consensus, blockchain_function, expected_chain_length, AI_assisted_mining_wanted)
+                self.continue_building_block(num_of_tx_per_block, miner_list, type_of_consensus, blockchain_function, expected_chain_length, AI_assisted_mining_wanted)
         else:
-            self.continue_building_block(num_of_tx_per_block, mempool, miner_list, type_of_consensus, blockchain_function, expected_chain_length, AI_assisted_mining_wanted)
+            self.continue_building_block(num_of_tx_per_block, miner_list, type_of_consensus, blockchain_function, expected_chain_length, AI_assisted_mining_wanted)
 
-    def continue_building_block(self, num_of_tx_per_block, mempool, miner_list, type_of_consensus, blockchain_function, expected_chain_length, AI_assisted_mining_wanted):
-        accumulated_transactions = new_consensus_module.accumulate_transactions(num_of_tx_per_block, mempool, blockchain_function,
+    def continue_building_block(self, num_of_tx_per_block, miner_list, type_of_consensus, blockchain_function, expected_chain_length, AI_assisted_mining_wanted):
+        accumulated_transactions = new_consensus_module.accumulate_transactions(num_of_tx_per_block, self.local_mempool, blockchain_function,
                                                                                 self.address)
         if accumulated_transactions:
             transactions = accumulated_transactions
             new_block = self.abstract_block_building(blockchain_function, transactions, miner_list, type_of_consensus, AI_assisted_mining_wanted)
             output.block_info(new_block, type_of_consensus)
+            for tx in transactions:
+                try:
+                    self.local_mempool.remove(tx)
+                except Exception as e:
+                    pass
             time.sleep(self.trans_delay)
             for elem in miner_list:
                 if elem.address in self.neighbours:
@@ -79,6 +84,11 @@ class Miner:
                 if new_consensus_module.block_is_valid(type_of_consensus, new_block, self.top_block, self.next_pos_block_from, miner_list, self.delegates):
                     self.add(new_block, blockchain_function, expected_chain_length, miner_list)
                     time.sleep(self.trans_delay)
+                    for tx in new_block["Body"]["transactions"]:
+                        try:
+                            self.local_mempool.remove(tx)
+                        except Exception as e:
+                            pass
                     for elem in miner_list:
                         if elem.address in self.neighbours:
                             elem.receive_new_block(new_block, type_of_consensus, miner_list, blockchain_function, expected_chain_length)
@@ -123,8 +133,17 @@ class Miner:
             self.top_block = block
             local_chain_temporary_file[str(len(local_chain_temporary_file))] = block
             modification.rewrite_file(str("temporary/" + self.address + "_local_chain.json"), local_chain_temporary_file)
+            self.remove_confirmed_txs_from_local_mempool(block)
             if self.gossiping:
                 self.update_global_longest_chain(local_chain_temporary_file, blockchain_function, list_of_miners)
+
+    def remove_confirmed_txs_from_local_mempool(self, confirmed_bock):
+        if confirmed_bock["Header"]["generator_id"] != "The Network":
+            try:
+                for tx in confirmed_bock["Body"]["transactions"]:
+                    self.local_mempool.remove(tx)
+            except Exception as e:
+                pass
 
     def gossip(self, blockchain_function, list_of_miners):
         local_chain_temporary_file = modification.read_file(str("temporary/" + self.address + "_local_chain.json"))

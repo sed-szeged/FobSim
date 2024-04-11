@@ -22,10 +22,10 @@ class Fog:
         temporary_task = random.choice(self.tasks)
         if not user_informed:
             output.inform_of_fog_procedure(temporary_task[-1], self.STOR_PLC)
-        if temporary_task[-1] == 1:
+        if temporary_task[-1] in [1, 3, 4]:
             for task in self.tasks:
                 if self.STOR_PLC == 1:
-                    mempool.MemPool.put(task)
+                    mempool.MemPool.append(task)
                 else:
                     self.local_storage.append(task)
         if temporary_task[-1] == 2:
@@ -39,11 +39,6 @@ class Fog:
                         self.local_storage.append(produced_transaction)
                         break
                     elif letter in ['/', '*']:
-                        mempool.MemPool.put(task)
+                        mempool.MemPool.append(task)
                         break
 
-        if temporary_task[-1] == 3:
-            for task in self.tasks:
-                mempool.MemPool.put(task)
-        if temporary_task[-1] == 4:
-            self.local_storage.extend(self.tasks)

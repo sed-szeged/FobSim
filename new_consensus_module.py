@@ -8,6 +8,7 @@ import encryption_module
 import time
 import PoET_server
 import AIModule
+import copy
 
 # NON-MODIFIABLE PART:
 
@@ -31,9 +32,9 @@ def choose_consensus():
 def accumulate_transactions(num_of_tx_per_block, this_mem_pool, blockchain_function, miner_address):
     lst_of_transactions = []
     if blockchain_function == 2:
-        if this_mem_pool.qsize() > 0:
+        if this_mem_pool:
             try:
-                lst_of_transactions = this_mem_pool.get(True, 1)
+                lst_of_transactions = random.choice(this_mem_pool)
                 lst_of_transactions.append(eval(lst_of_transactions[2]))
                 produced_transaction = ['End-user address: ' + str(lst_of_transactions[0]) + '.' + str(lst_of_transactions[1]),
                                         'Requested computational task: ' + str(lst_of_transactions[2]), 'Result: '
@@ -42,12 +43,18 @@ def accumulate_transactions(num_of_tx_per_block, this_mem_pool, blockchain_funct
             except:
                 print("error in accumulating new TXs:")
     else:
-        for i in range(num_of_tx_per_block):
-            if this_mem_pool.qsize() > 0:
+        i = 0
+        while i < num_of_tx_per_block:
+            if this_mem_pool:
                 try:
-                    lst_of_transactions.append(this_mem_pool.get(True, 1))
+                    selected_tx = random.choice(this_mem_pool)
+                    if selected_tx not in lst_of_transactions:
+                        lst_of_transactions.append(random.choice(this_mem_pool))
+                    this_mem_pool.remove(selected_tx)
+                    i += 1
                 except:
                     print("error in accumulating full new list of TXs")
+                    break
             else:
                 output.mempool_is_empty()
                 break
@@ -62,13 +69,13 @@ def trigger_pow_miners(the_miners_list, the_type_of_consensus, expected_chain_le
         if Parallel_PoW_mining:
             # parallel approach
             process = Process(target=obj.build_block, args=(
-                numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction,
+                numOfTXperBlock, the_miners_list, the_type_of_consensus, blockchainFunction,
                 expected_chain_length, AI_assisted_mining_wanted))
             process.start()
             mining_processes.append(process)
         else:
             # non-parallel approach
-            obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus,
+            obj.build_block(numOfTXperBlock, the_miners_list, the_type_of_consensus,
                             blockchainFunction, expected_chain_length, AI_assisted_mining_wanted)
         output.simulation_progress(counter, expected_chain_length)
     for process in mining_processes:
@@ -80,8 +87,12 @@ def trigger_pos_miners(the_miners_list, the_type_of_consensus, expected_chain_le
     for counter in range(expected_chain_length):
         randomly_chosen_miners = []
         x = int(round((len(the_miners_list) / 2), 0))
-        for i in range(x):
-            randomly_chosen_miners.append(random.choice(the_miners_list))
+        j = 0
+        while j < x:
+            randomly_chosen_miner = random.choice(the_miners_list)
+            if randomly_chosen_miner.local_mempool:
+                randomly_chosen_miners.append(randomly_chosen_miner)
+                j += 1
         biggest_stake = 0
         final_chosen_miner = the_miners_list[0]
         temp_file_py = modification.read_file('temporary/miners_stake_amounts.json')
@@ -92,8 +103,7 @@ def trigger_pos_miners(the_miners_list, the_type_of_consensus, expected_chain_le
                 final_chosen_miner = chosen_miner
         for entity in the_miners_list:
             entity.next_pos_block_from = final_chosen_miner.address
-        if mempool.MemPool.qsize() != 0:
-            final_chosen_miner.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus,
+        final_chosen_miner.build_block(numOfTXperBlock, the_miners_list, the_type_of_consensus,
                                            blockchainFunction, expected_chain_length, None)
         output.simulation_progress(counter, expected_chain_length)
 
@@ -102,8 +112,8 @@ def trigger_poa_miners(the_miners_list, the_type_of_consensus, expected_chain_le
                        blockchainFunction):
     for counter in range(expected_chain_length):
         for obj in the_miners_list:
-            if mempool.MemPool.qsize() != 0:
-                obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus,
+            if obj.local_mempool:
+                obj.build_block(numOfTXperBlock, the_miners_list, the_type_of_consensus,
                                 blockchainFunction, expected_chain_length, None)
         output.simulation_progress(counter, expected_chain_length)
 
@@ -129,7 +139,7 @@ def trigger_poet_miners(expected_chain_length, the_miners_list, poet_block_time,
             for obj in the_miners_list:
                 if obj.address in least_waiting_time_for:
                     process = Process(target=obj.build_block, args=(
-                        numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction,
+                        numOfTXperBlock, the_miners_list, the_type_of_consensus, blockchainFunction,
                         expected_chain_length, None,))
                     process.start()
                     mining_processes.append(process)
@@ -138,15 +148,14 @@ def trigger_poet_miners(expected_chain_length, the_miners_list, poet_block_time,
         else:
             for obj in the_miners_list:
                 if obj.address in least_waiting_time_for:
-                    obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction,
+                    obj.build_block(numOfTXperBlock, the_miners_list, the_type_of_consensus, blockchainFunction,
                                     expected_chain_length)
-        if mempool.MemPool.qsize() == 0:
-            break
-        else:
-            now_time_must_be = start_time + ((counter + 1) * poet_block_time)
-            difference = now_time_must_be - time.time()
-            if difference > 0:
-                time.sleep(difference)
+        for obj in the_miners_list:
+            if obj.local_mempool:
+                now_time_must_be = start_time + ((counter + 1) * poet_block_time)
+                difference = now_time_must_be - time.time()
+                if difference > 0:
+                    time.sleep(difference)
 
 
 def trigger_dpos_miners(expected_chain_length, the_miners_list, number_of_delegates, numOfTXperBlock, the_type_of_consensus, blockchainFunction, Parallel_PoW_mining):
@@ -160,12 +169,12 @@ def trigger_dpos_miners(expected_chain_length, the_miners_list, number_of_delega
             if entity.address in entity.delegates:
                 if Parallel_PoW_mining:
                     process = Process(target=entity.build_block, args=(
-                        numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction,
+                        numOfTXperBlock, the_miners_list, the_type_of_consensus, blockchainFunction,
                         expected_chain_length, None,))
                     process.start()
                     processes.append(process)
                 else:
-                    entity.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction,
+                    entity.build_block(numOfTXperBlock, the_miners_list, the_type_of_consensus, blockchainFunction,
                                        expected_chain_length, None)
         for process in processes:
             process.join()
@@ -348,6 +357,8 @@ def generate_new_block(transactions, generator_id, previous_hash, type_of_consen
 
 def miners_trigger(the_miners_list, the_type_of_consensus, expected_chain_length, Parallel_PoW_mining, numOfTXperBlock, blockchainFunction, poet_block_time, Asymmetric_key_length, number_of_DPoS_delegates, AI_assisted_mining_wanted):
     output.mempool_info(mempool.MemPool)
+    for obj in the_miners_list:
+        obj.local_mempool = copy.deepcopy(mempool.MemPool)
     if the_type_of_consensus == 1:
         trigger_pow_miners(the_miners_list, the_type_of_consensus, expected_chain_length, Parallel_PoW_mining, numOfTXperBlock, blockchainFunction, AI_assisted_mining_wanted)
     if the_type_of_consensus == 2:
@@ -370,10 +381,10 @@ def miners_trigger(the_miners_list, the_type_of_consensus, expected_chain_length
 
 def trigger_dummy_miners(the_miners_list, numOfTXperBlock, the_type_of_consensus, blockchainFunction, expected_chain_length):
     counter = -1
-    while mempool.MemPool.qsize() != 0:
-        obj = random.choice(the_miners_list)
-        obj.build_block(numOfTXperBlock, mempool.MemPool, the_miners_list, the_type_of_consensus, blockchainFunction, expected_chain_length, None)
-        counter += 1
+    for obj in the_miners_list:
+        if obj.local_mempool:
+            obj.build_block(numOfTXperBlock, the_miners_list, the_type_of_consensus, blockchainFunction, expected_chain_length, None)
+            counter += 1
     output.simulation_progress(counter, expected_chain_length)
 
 

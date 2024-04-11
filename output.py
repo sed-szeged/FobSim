@@ -91,11 +91,8 @@ def fork_analysis(number_of_forks):
 def mempool_info(mempool):
     print('mempool contains the following TXs:')
     txs = []
-    for i in range(mempool.qsize()):
-        txs.append(mempool.get())
-    for tx in txs:
+    for tx in mempool:
         print(tx)
-        mempool.put(tx)
 
 
 def authorization_trigger(blockchain_placement, no_fogs, no_miners):
